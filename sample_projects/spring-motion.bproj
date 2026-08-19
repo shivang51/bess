@@ -11,87 +11,9 @@
                     "components" : 
                     [
                         {
-                            "childComponents" : 
-                            [
-                                12245205477746448029,
-                                1471066086980806321,
-                                9825785875182399465,
-                                17468942967972593197
-                            ],
-                            "inputSlots" : [ 12245205477746448029, 1471066086980806321, 9825785875182399465 ],
-                            "name" : "Position Integrator",
-                            "netId" : 0,
-                            "outputSlots" : [ 17468942967972593197 ],
-                            "parentComponent" : 0,
-                            "schematicTransform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 208.0, -82.0, 1.0030001401901245 ],
-                                "scale" : [ 214.0, 70.0 ]
-                            },
-                            "simEngineId" : 1123128533167360871,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 1920103141,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 208.0, -82.0, 1.0030001401901245 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "SimulationSceneComponent",
-                            "uuid" : 10981842011925553985
-                        },
-                        {
-                            "childComponents" : [ 2375922566586750774, 10510862118116355216, 17218458580521326808 ],
-                            "inputSlots" : [ 2375922566586750774, 10510862118116355216 ],
-                            "name" : "Add",
-                            "netId" : 0,
-                            "outputSlots" : [ 17218458580521326808 ],
-                            "parentComponent" : 0,
-                            "schematicTransform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 584.0, -0.0, 1.006000280380249 ],
-                                "scale" : [ 46.0, 46.0 ]
-                            },
-                            "simEngineId" : 2066063274664249606,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 1920103141,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 584.0, -0.0, 1.006000280380249 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "SimulationSceneComponent",
-                            "uuid" : 11423000164815586237
-                        },
-                        {
                             "associatedJoints" : [],
                             "childComponents" : [],
-                            "endSlot" : 15874249671989701960,
+                            "endSlot" : 12245205477746448029,
                             "initialSegmentCount" : 3,
                             "name" : "ConnSceneComp",
                             "parentComponent" : 0,
@@ -99,83 +21,7 @@
                             "segments" : 
                             [
                                 {
-                                    "offset" : [ 35.75, 0.0 ],
-                                    "orientation" : 0
-                                },
-                                {
-                                    "offset" : [ 0.0, 52.0 ],
-                                    "orientation" : 1
-                                }
-                            ],
-                            "shouldReconstructSegments" : false,
-                            "startSlot" : 17468942967972593197,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 253176575,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 328.75, -68.5, 1.0036001205444336 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "ConnSceneComponent",
-                            "useCustomColor" : false,
-                            "uuid" : 14750407233332942960
-                        },
-                        {
-                            "childComponents" : [],
-                            "connectedConnections" : [],
-                            "index" : 1,
-                            "name" : "Initial Value",
-                            "parentComponent" : 10981842011925553985,
-                            "portDirection" : 1,
-                            "resizeTrigger" : false,
-                            "schematicPos" : [ -107.0, 0.0, -0.00050000002374872565 ],
-                            "signalKind" : 2,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 253176575,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 0.0, 0.0, 0.0 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "SlotSceneComponent",
-                            "uuid" : 1471066086980806321
-                        },
-                        {
-                            "associatedJoints" : [],
-                            "childComponents" : [],
-                            "endSlot" : 10510862118116355216,
-                            "initialSegmentCount" : 3,
-                            "name" : "ConnSceneComp",
-                            "parentComponent" : 0,
-                            "schemeticSegments" : [],
-                            "segments" : 
-                            [
-                                {
-                                    "offset" : [ 65.50390625, 0.0 ],
+                                    "offset" : [ 53.0, 0.0 ],
                                     "orientation" : 0
                                 },
                                 {
@@ -184,7 +30,7 @@
                                 }
                             ],
                             "shouldReconstructSegments" : false,
-                            "startSlot" : 1019527515913062676,
+                            "startSlot" : 5490923877709308612,
                             "style" : 
                             {
                                 "color" : 4294967295,
@@ -201,23 +47,22 @@
                             "transform" : 
                             {
                                 "angle" : 0.0,
-                                "position" : [ 437.0, 17.5, 1.0056002140045166 ],
+                                "position" : [ 81.0, -94.5, 1.0026001930236816 ],
                                 "scale" : [ 100.0, 100.0 ]
                             },
                             "typeName" : "ConnSceneComponent",
                             "useCustomColor" : false,
-                            "uuid" : 9169622887362542556
+                            "uuid" : 10648584816306425705
                         },
                         {
                             "childComponents" : [],
-                            "connectedConnections" : [],
-                            "index" : 1,
-                            "name" : "B",
-                            "parentComponent" : 13694528230230517985,
-                            "portDirection" : 1,
-                            "resizeTrigger" : false,
-                            "schematicPos" : [ -38.0, 8.0, -0.00050000002374872565 ],
-                            "signalKind" : 2,
+                            "followLatest" : true,
+                            "hiddenProbedSlots" : [ 5490923877709308612, 17218458580521326808 ],
+                            "name" : "Monitor Node",
+                            "parentComponent" : 0,
+                            "probedSlots" : [ 17468942967972593197, 5490923877709308612, 17218458580521326808 ],
+                            "showGrid" : true,
+                            "showLegend" : true,
                             "style" : 
                             {
                                 "color" : 4294967295,
@@ -231,202 +76,28 @@
                                     "showPinLabels" : true
                                 }
                             },
+                            "timeScale" : 1.0,
                             "transform" : 
                             {
                                 "angle" : 0.0,
-                                "position" : [ 0.0, 0.0, 0.0 ],
-                                "scale" : [ 100.0, 100.0 ]
+                                "position" : [ 552.0, -188.0, 1.008000373840332 ],
+                                "scale" : [ 380.0, 220.0 ]
                             },
-                            "typeName" : "SlotSceneComponent",
-                            "uuid" : 3942390198811279702
-                        },
-                        {
-                            "childComponents" : [ 3692114368428697157, 14617416774963326570, 1019527515913062676 ],
-                            "inputSlots" : [ 3692114368428697157, 14617416774963326570 ],
-                            "name" : "Multiply",
-                            "netId" : 0,
-                            "outputSlots" : [ 1019527515913062676 ],
-                            "parentComponent" : 0,
-                            "schematicTransform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 272.0, 20.0, 1.0050002336502075 ],
-                                "scale" : [ 76.0, 46.0 ]
-                            },
-                            "simEngineId" : 16746529817031790531,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 1920103141,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 272.0, 20.0, 1.0050002336502075 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "SimulationSceneComponent",
-                            "uuid" : 626695915509534816
-                        },
-                        {
-                            "childComponents" : [ 15874249671989701960, 3942390198811279702, 4951519504509088662 ],
-                            "inputSlots" : [ 15874249671989701960, 3942390198811279702 ],
-                            "name" : "Multiply",
-                            "netId" : 0,
-                            "outputSlots" : [ 4951519504509088662 ],
-                            "parentComponent" : 0,
-                            "schematicTransform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 426.0, -40.0, 1.004000186920166 ],
-                                "scale" : [ 76.0, 46.0 ]
-                            },
-                            "simEngineId" : 11885115606169027319,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 1920103141,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 426.0, -40.0, 1.004000186920166 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "SimulationSceneComponent",
-                            "uuid" : 13694528230230517985
+                            "typeName" : "MonitorSceneComp",
+                            "uuid" : 16694934949796119001,
+                            "viewEndTimeSeconds" : 0.0,
+                            "viewTimeSpanSeconds" : 0.0,
+                            "voltageScale" : 1.0
                         },
                         {
                             "childComponents" : [],
-                            "connectedConnections" : [ 10648584816306425705 ],
-                            "index" : 0,
-                            "name" : "X",
-                            "parentComponent" : 10981842011925553985,
-                            "portDirection" : 1,
-                            "resizeTrigger" : false,
-                            "schematicPos" : [ -107.0, -18.0, -0.00050000002374872565 ],
-                            "signalKind" : 2,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 253176575,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 0.0, 0.0, 0.0 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "SlotSceneComponent",
-                            "uuid" : 12245205477746448029
-                        },
-                        {
-                            "childComponents" : 
-                            [
-                                14695465029064183391,
-                                12992042798404390634,
-                                1954848426411109152,
-                                5490923877709308612
-                            ],
-                            "inputSlots" : [ 14695465029064183391, 12992042798404390634, 1954848426411109152 ],
-                            "name" : "Velocity Integrator",
-                            "netId" : 0,
-                            "outputSlots" : [ 5490923877709308612 ],
-                            "parentComponent" : 0,
-                            "schematicTransform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ -46.0, -82.0, 1.002000093460083 ],
-                                "scale" : [ 214.0, 70.0 ]
-                            },
-                            "simEngineId" : 15367152407295324164,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 1920103141,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ -46.0, -82.0, 1.002000093460083 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "SimulationSceneComponent",
-                            "uuid" : 9707997898227811519
-                        },
-                        {
-                            "childComponents" : [],
-                            "connectedConnections" : [ 12279651548763371359 ],
-                            "index" : 0,
-                            "name" : "X",
-                            "parentComponent" : 9707997898227811519,
-                            "portDirection" : 1,
-                            "resizeTrigger" : false,
-                            "schematicPos" : [ -107.0, -18.0, -0.00050000002374872565 ],
-                            "signalKind" : 2,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 253176575,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 0.0, 0.0, 0.0 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "SlotSceneComponent",
-                            "uuid" : 14695465029064183391
-                        },
-                        {
-                            "childComponents" : [],
-                            "connectedConnections" : [ 4707989616993871913 ],
+                            "connectedConnections" : [ 4919678903687883975 ],
                             "index" : 0,
                             "name" : "A",
-                            "parentComponent" : 626695915509534816,
+                            "parentComponent" : 11423000164815586237,
                             "portDirection" : 1,
                             "resizeTrigger" : false,
-                            "schematicPos" : [ -38.0, -8.0, -0.00050000002374872565 ],
+                            "schematicPos" : [ -23.0, -8.0, -0.00050000002374872565 ],
                             "signalKind" : 2,
                             "style" : 
                             {
@@ -448,7 +119,39 @@
                                 "scale" : [ 100.0, 100.0 ]
                             },
                             "typeName" : "SlotSceneComponent",
-                            "uuid" : 3692114368428697157
+                            "uuid" : 2375922566586750774
+                        },
+                        {
+                            "childComponents" : [],
+                            "connectedConnections" : [ 14750407233332942960 ],
+                            "index" : 0,
+                            "name" : "Y",
+                            "parentComponent" : 10981842011925553985,
+                            "portDirection" : 2,
+                            "resizeTrigger" : false,
+                            "schematicPos" : [ 107.0, 0.0, -0.00050000002374872565 ],
+                            "signalKind" : 2,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 253176575,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 0.0, 0.0, 0.0 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "SlotSceneComponent",
+                            "uuid" : 17468942967972593197
                         },
                         {
                             "childComponents" : [],
@@ -481,38 +184,6 @@
                             },
                             "typeName" : "SlotSceneComponent",
                             "uuid" : 17218458580521326808
-                        },
-                        {
-                            "childComponents" : [],
-                            "connectedConnections" : [],
-                            "index" : 2,
-                            "name" : "Reset",
-                            "parentComponent" : 9707997898227811519,
-                            "portDirection" : 1,
-                            "resizeTrigger" : false,
-                            "schematicPos" : [ -107.0, 18.0, -0.00050000002374872565 ],
-                            "signalKind" : 2,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 253176575,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 0.0, 0.0, 0.0 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "SlotSceneComponent",
-                            "uuid" : 1954848426411109152
                         },
                         {
                             "associatedJoints" : [],
@@ -591,11 +262,311 @@
                             "uuid" : 14617416774963326570
                         },
                         {
+                            "childComponents" : 
+                            [
+                                12245205477746448029,
+                                1471066086980806321,
+                                9825785875182399465,
+                                17468942967972593197
+                            ],
+                            "inputSlots" : [ 12245205477746448029, 1471066086980806321, 9825785875182399465 ],
+                            "name" : "Position Integrator",
+                            "netId" : 0,
+                            "outputSlots" : [ 17468942967972593197 ],
+                            "parentComponent" : 0,
+                            "schematicTransform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 208.0, -82.0, 1.0030001401901245 ],
+                                "scale" : [ 214.0, 70.0 ]
+                            },
+                            "simEngineId" : 1123128533167360871,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 1920103141,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 208.0, -82.0, 1.0030001401901245 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "SimulationSceneComponent",
+                            "uuid" : 10981842011925553985
+                        },
+                        {
+                            "associatedJoints" : [],
+                            "childComponents" : [],
+                            "endSlot" : 10510862118116355216,
+                            "initialSegmentCount" : 3,
+                            "name" : "ConnSceneComp",
+                            "parentComponent" : 0,
+                            "schemeticSegments" : [],
+                            "segments" : 
+                            [
+                                {
+                                    "offset" : [ 65.50390625, 0.0 ],
+                                    "orientation" : 0
+                                },
+                                {
+                                    "offset" : [ 0.0, 0.0 ],
+                                    "orientation" : 1
+                                }
+                            ],
+                            "shouldReconstructSegments" : false,
+                            "startSlot" : 1019527515913062676,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 253176575,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 437.0, 17.5, 1.0056002140045166 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "ConnSceneComponent",
+                            "useCustomColor" : false,
+                            "uuid" : 9169622887362542556
+                        },
+                        {
+                            "childComponents" : 
+                            [
+                                14695465029064183391,
+                                12992042798404390634,
+                                1954848426411109152,
+                                5490923877709308612
+                            ],
+                            "inputSlots" : [ 14695465029064183391, 12992042798404390634, 1954848426411109152 ],
+                            "name" : "Velocity Integrator",
+                            "netId" : 0,
+                            "outputSlots" : [ 5490923877709308612 ],
+                            "parentComponent" : 0,
+                            "schematicTransform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ -46.0, -82.0, 1.002000093460083 ],
+                                "scale" : [ 214.0, 70.0 ]
+                            },
+                            "simEngineId" : 15367152407295324164,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 1920103141,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ -46.0, -82.0, 1.002000093460083 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "SimulationSceneComponent",
+                            "uuid" : 9707997898227811519
+                        },
+                        {
+                            "childComponents" : [],
+                            "connectedConnections" : [ 9169622887362542556 ],
+                            "index" : 0,
+                            "name" : "Y",
+                            "parentComponent" : 626695915509534816,
+                            "portDirection" : 2,
+                            "resizeTrigger" : false,
+                            "schematicPos" : [ 38.0, 0.0, -0.00050000002374872565 ],
+                            "signalKind" : 2,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 253176575,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 0.0, 0.0, 0.0 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "SlotSceneComponent",
+                            "uuid" : 1019527515913062676
+                        },
+                        {
+                            "childComponents" : [],
+                            "connectedConnections" : [],
+                            "index" : 1,
+                            "name" : "Initial Value",
+                            "parentComponent" : 10981842011925553985,
+                            "portDirection" : 1,
+                            "resizeTrigger" : false,
+                            "schematicPos" : [ -107.0, 0.0, -0.00050000002374872565 ],
+                            "signalKind" : 2,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 253176575,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 0.0, 0.0, 0.0 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "SlotSceneComponent",
+                            "uuid" : 1471066086980806321
+                        },
+                        {
+                            "associatedJoints" : [],
+                            "childComponents" : [],
+                            "endSlot" : 15874249671989701960,
+                            "initialSegmentCount" : 3,
+                            "name" : "ConnSceneComp",
+                            "parentComponent" : 0,
+                            "schemeticSegments" : [],
+                            "segments" : 
+                            [
+                                {
+                                    "offset" : [ 35.75, 0.0 ],
+                                    "orientation" : 0
+                                },
+                                {
+                                    "offset" : [ 0.0, 52.0 ],
+                                    "orientation" : 1
+                                }
+                            ],
+                            "shouldReconstructSegments" : false,
+                            "startSlot" : 17468942967972593197,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 253176575,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 328.75, -68.5, 1.0036001205444336 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "ConnSceneComponent",
+                            "useCustomColor" : false,
+                            "uuid" : 14750407233332942960
+                        },
+                        {
+                            "childComponents" : [],
+                            "connectedConnections" : [ 4919678903687883975 ],
+                            "index" : 0,
+                            "name" : "Y",
+                            "parentComponent" : 13694528230230517985,
+                            "portDirection" : 2,
+                            "resizeTrigger" : false,
+                            "schematicPos" : [ 38.0, 0.0, -0.00050000002374872565 ],
+                            "signalKind" : 2,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 253176575,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 0.0, 0.0, 0.0 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "SlotSceneComponent",
+                            "uuid" : 4951519504509088662
+                        },
+                        {
+                            "childComponents" : [],
+                            "connectedConnections" : [ 12279651548763371359 ],
+                            "index" : 0,
+                            "name" : "X",
+                            "parentComponent" : 9707997898227811519,
+                            "portDirection" : 1,
+                            "resizeTrigger" : false,
+                            "schematicPos" : [ -107.0, -18.0, -0.00050000002374872565 ],
+                            "signalKind" : 2,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 253176575,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 0.0, 0.0, 0.0 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "SlotSceneComponent",
+                            "uuid" : 14695465029064183391
+                        },
+                        {
                             "childComponents" : [],
                             "connectedConnections" : [],
                             "index" : 2,
                             "name" : "Reset",
-                            "parentComponent" : 10981842011925553985,
+                            "parentComponent" : 9707997898227811519,
                             "portDirection" : 1,
                             "resizeTrigger" : false,
                             "schematicPos" : [ -107.0, 18.0, -0.00050000002374872565 ],
@@ -620,33 +591,26 @@
                                 "scale" : [ 100.0, 100.0 ]
                             },
                             "typeName" : "SlotSceneComponent",
-                            "uuid" : 9825785875182399465
+                            "uuid" : 1954848426411109152
                         },
                         {
-                            "associatedJoints" : [],
-                            "childComponents" : [],
-                            "endSlot" : 12245205477746448029,
-                            "initialSegmentCount" : 3,
-                            "name" : "ConnSceneComp",
+                            "childComponents" : [ 2375922566586750774, 10510862118116355216, 17218458580521326808 ],
+                            "inputSlots" : [ 2375922566586750774, 10510862118116355216 ],
+                            "name" : "Add",
+                            "netId" : 0,
+                            "outputSlots" : [ 17218458580521326808 ],
                             "parentComponent" : 0,
-                            "schemeticSegments" : [],
-                            "segments" : 
-                            [
-                                {
-                                    "offset" : [ 53.0, 0.0 ],
-                                    "orientation" : 0
-                                },
-                                {
-                                    "offset" : [ 0.0, 0.0 ],
-                                    "orientation" : 1
-                                }
-                            ],
-                            "shouldReconstructSegments" : false,
-                            "startSlot" : 5490923877709308612,
+                            "schematicTransform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 584.0, -0.0, 1.006000280380249 ],
+                                "scale" : [ 46.0, 46.0 ]
+                            },
+                            "simEngineId" : 2066063274664249606,
                             "style" : 
                             {
                                 "color" : 4294967295,
-                                "headerColor" : 253176575,
+                                "headerColor" : 1920103141,
                                 "schematicStyle" : 
                                 {
                                     "flipSlotsX" : false,
@@ -659,12 +623,11 @@
                             "transform" : 
                             {
                                 "angle" : 0.0,
-                                "position" : [ 81.0, -94.5, 1.0026001930236816 ],
+                                "position" : [ 584.0, -0.0, 1.006000280380249 ],
                                 "scale" : [ 100.0, 100.0 ]
                             },
-                            "typeName" : "ConnSceneComponent",
-                            "useCustomColor" : false,
-                            "uuid" : 10648584816306425705
+                            "typeName" : "SimulationSceneComponent",
+                            "uuid" : 11423000164815586237
                         },
                         {
                             "childComponents" : [],
@@ -732,48 +695,13 @@
                         },
                         {
                             "childComponents" : [],
-                            "followLatest" : false,
-                            "hiddenProbedSlots" : [],
-                            "name" : "Monitor Node",
-                            "parentComponent" : 0,
-                            "probedSlots" : [ 17468942967972593197 ],
-                            "showGrid" : true,
-                            "showLegend" : true,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 253176575,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "timeScale" : 1.0000002384185791,
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 552.0, -188.0, 1.008000373840332 ],
-                                "scale" : [ 380.0, 220.0 ]
-                            },
-                            "typeName" : "MonitorSceneComp",
-                            "uuid" : 16694934949796119001,
-                            "viewEndTimeSeconds" : 6.3101835802722173,
-                            "viewTimeSpanSeconds" : 6.3101835802722173,
-                            "voltageScale" : 1.0
-                        },
-                        {
-                            "childComponents" : [],
-                            "connectedConnections" : [ 4919678903687883975 ],
-                            "index" : 0,
-                            "name" : "A",
+                            "connectedConnections" : [ 9169622887362542556 ],
+                            "index" : 1,
+                            "name" : "B",
                             "parentComponent" : 11423000164815586237,
                             "portDirection" : 1,
                             "resizeTrigger" : false,
-                            "schematicPos" : [ -23.0, -8.0, -0.00050000002374872565 ],
+                            "schematicPos" : [ -23.0, 8.0, -0.00050000002374872565 ],
                             "signalKind" : 2,
                             "style" : 
                             {
@@ -795,17 +723,17 @@
                                 "scale" : [ 100.0, 100.0 ]
                             },
                             "typeName" : "SlotSceneComponent",
-                            "uuid" : 2375922566586750774
+                            "uuid" : 10510862118116355216
                         },
                         {
                             "childComponents" : [],
-                            "connectedConnections" : [ 14750407233332942960 ],
+                            "connectedConnections" : [ 10648584816306425705 ],
                             "index" : 0,
-                            "name" : "Y",
+                            "name" : "X",
                             "parentComponent" : 10981842011925553985,
-                            "portDirection" : 2,
+                            "portDirection" : 1,
                             "resizeTrigger" : false,
-                            "schematicPos" : [ 107.0, 0.0, -0.00050000002374872565 ],
+                            "schematicPos" : [ -107.0, -18.0, -0.00050000002374872565 ],
                             "signalKind" : 2,
                             "style" : 
                             {
@@ -827,7 +755,43 @@
                                 "scale" : [ 100.0, 100.0 ]
                             },
                             "typeName" : "SlotSceneComponent",
-                            "uuid" : 17468942967972593197
+                            "uuid" : 12245205477746448029
+                        },
+                        {
+                            "childComponents" : [ 15874249671989701960, 3942390198811279702, 4951519504509088662 ],
+                            "inputSlots" : [ 15874249671989701960, 3942390198811279702 ],
+                            "name" : "Multiply",
+                            "netId" : 0,
+                            "outputSlots" : [ 4951519504509088662 ],
+                            "parentComponent" : 0,
+                            "schematicTransform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 426.0, -40.0, 1.004000186920166 ],
+                                "scale" : [ 76.0, 46.0 ]
+                            },
+                            "simEngineId" : 11885115606169027319,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 1920103141,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 426.0, -40.0, 1.004000186920166 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "SimulationSceneComponent",
+                            "uuid" : 13694528230230517985
                         },
                         {
                             "childComponents" : [],
@@ -862,19 +826,23 @@
                             "uuid" : 15874249671989701960
                         },
                         {
-                            "childComponents" : [],
-                            "connectedConnections" : [ 9169622887362542556 ],
-                            "index" : 0,
-                            "name" : "Y",
-                            "parentComponent" : 626695915509534816,
-                            "portDirection" : 2,
-                            "resizeTrigger" : false,
-                            "schematicPos" : [ 38.0, 0.0, -0.00050000002374872565 ],
-                            "signalKind" : 2,
+                            "childComponents" : [ 3692114368428697157, 14617416774963326570, 1019527515913062676 ],
+                            "inputSlots" : [ 3692114368428697157, 14617416774963326570 ],
+                            "name" : "Multiply",
+                            "netId" : 0,
+                            "outputSlots" : [ 1019527515913062676 ],
+                            "parentComponent" : 0,
+                            "schematicTransform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 272.0, 20.0, 1.0050002336502075 ],
+                                "scale" : [ 76.0, 46.0 ]
+                            },
+                            "simEngineId" : 16746529817031790531,
                             "style" : 
                             {
                                 "color" : 4294967295,
-                                "headerColor" : 253176575,
+                                "headerColor" : 1920103141,
                                 "schematicStyle" : 
                                 {
                                     "flipSlotsX" : false,
@@ -887,21 +855,21 @@
                             "transform" : 
                             {
                                 "angle" : 0.0,
-                                "position" : [ 0.0, 0.0, 0.0 ],
+                                "position" : [ 272.0, 20.0, 1.0050002336502075 ],
                                 "scale" : [ 100.0, 100.0 ]
                             },
-                            "typeName" : "SlotSceneComponent",
-                            "uuid" : 1019527515913062676
+                            "typeName" : "SimulationSceneComponent",
+                            "uuid" : 626695915509534816
                         },
                         {
                             "childComponents" : [],
-                            "connectedConnections" : [ 9169622887362542556 ],
+                            "connectedConnections" : [],
                             "index" : 1,
                             "name" : "B",
-                            "parentComponent" : 11423000164815586237,
+                            "parentComponent" : 13694528230230517985,
                             "portDirection" : 1,
                             "resizeTrigger" : false,
-                            "schematicPos" : [ -23.0, 8.0, -0.00050000002374872565 ],
+                            "schematicPos" : [ -38.0, 8.0, -0.00050000002374872565 ],
                             "signalKind" : 2,
                             "style" : 
                             {
@@ -923,7 +891,83 @@
                                 "scale" : [ 100.0, 100.0 ]
                             },
                             "typeName" : "SlotSceneComponent",
-                            "uuid" : 10510862118116355216
+                            "uuid" : 3942390198811279702
+                        },
+                        {
+                            "childComponents" : [],
+                            "connectedConnections" : [ 4707989616993871913 ],
+                            "index" : 0,
+                            "name" : "A",
+                            "parentComponent" : 626695915509534816,
+                            "portDirection" : 1,
+                            "resizeTrigger" : false,
+                            "schematicPos" : [ -38.0, -8.0, -0.00050000002374872565 ],
+                            "signalKind" : 2,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 253176575,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 0.0, 0.0, 0.0 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "SlotSceneComponent",
+                            "uuid" : 3692114368428697157
+                        },
+                        {
+                            "associatedJoints" : [],
+                            "childComponents" : [],
+                            "endSlot" : 3692114368428697157,
+                            "initialSegmentCount" : 3,
+                            "name" : "ConnSceneComp",
+                            "parentComponent" : 0,
+                            "schemeticSegments" : [],
+                            "segments" : 
+                            [
+                                {
+                                    "offset" : [ 26.75, 0.0 ],
+                                    "orientation" : 0
+                                },
+                                {
+                                    "offset" : [ 0.0, 112.0 ],
+                                    "orientation" : 1
+                                }
+                            ],
+                            "shouldReconstructSegments" : false,
+                            "startSlot" : 5490923877709308612,
+                            "style" : 
+                            {
+                                "color" : 4294967295,
+                                "headerColor" : 253176575,
+                                "schematicStyle" : 
+                                {
+                                    "flipSlotsX" : false,
+                                    "pinLabelAlign" : 0,
+                                    "schematicLabelAlign" : 0,
+                                    "showName" : true,
+                                    "showPinLabels" : true
+                                }
+                            },
+                            "transform" : 
+                            {
+                                "angle" : 0.0,
+                                "position" : [ 124.75, -38.5, 1.0036001205444336 ],
+                                "scale" : [ 100.0, 100.0 ]
+                            },
+                            "typeName" : "ConnSceneComponent",
+                            "useCustomColor" : false,
+                            "uuid" : 4707989616993871913
                         },
                         {
                             "associatedJoints" : [],
@@ -978,58 +1022,14 @@
                             "uuid" : 12279651548763371359
                         },
                         {
-                            "associatedJoints" : [],
                             "childComponents" : [],
-                            "endSlot" : 3692114368428697157,
-                            "initialSegmentCount" : 3,
-                            "name" : "ConnSceneComp",
-                            "parentComponent" : 0,
-                            "schemeticSegments" : [],
-                            "segments" : 
-                            [
-                                {
-                                    "offset" : [ 26.75, 0.0 ],
-                                    "orientation" : 0
-                                },
-                                {
-                                    "offset" : [ 0.0, 112.0 ],
-                                    "orientation" : 1
-                                }
-                            ],
-                            "shouldReconstructSegments" : false,
-                            "startSlot" : 5490923877709308612,
-                            "style" : 
-                            {
-                                "color" : 4294967295,
-                                "headerColor" : 253176575,
-                                "schematicStyle" : 
-                                {
-                                    "flipSlotsX" : false,
-                                    "pinLabelAlign" : 0,
-                                    "schematicLabelAlign" : 0,
-                                    "showName" : true,
-                                    "showPinLabels" : true
-                                }
-                            },
-                            "transform" : 
-                            {
-                                "angle" : 0.0,
-                                "position" : [ 124.75, -38.5, 1.0036001205444336 ],
-                                "scale" : [ 100.0, 100.0 ]
-                            },
-                            "typeName" : "ConnSceneComponent",
-                            "useCustomColor" : false,
-                            "uuid" : 4707989616993871913
-                        },
-                        {
-                            "childComponents" : [],
-                            "connectedConnections" : [ 4919678903687883975 ],
-                            "index" : 0,
-                            "name" : "Y",
-                            "parentComponent" : 13694528230230517985,
-                            "portDirection" : 2,
+                            "connectedConnections" : [],
+                            "index" : 2,
+                            "name" : "Reset",
+                            "parentComponent" : 10981842011925553985,
+                            "portDirection" : 1,
                             "resizeTrigger" : false,
-                            "schematicPos" : [ 38.0, 0.0, -0.00050000002374872565 ],
+                            "schematicPos" : [ -107.0, 18.0, -0.00050000002374872565 ],
                             "signalKind" : 2,
                             "style" : 
                             {
@@ -1051,7 +1051,7 @@
                                 "scale" : [ 100.0, 100.0 ]
                             },
                             "typeName" : "SlotSceneComponent",
-                            "uuid" : 4951519504509088662
+                            "uuid" : 9825785875182399465
                         }
                     ],
                     "isRootScene" : true,
@@ -1075,45 +1075,16 @@
                     {
                         "def" : 
                         {
-                            "autoRescheduleDelay" : 1000000.0,
+                            "autoRescheduleDelay" : 0.0,
                             "behaviorType" : 0,
-                            "groupName" : "Calculus",
+                            "groupName" : "Maths",
                             "inputPorts" : 
                             {
-                                "count" : 3,
-                                "defaultStates" : 
-                                [
-                                    {
-                                        "connState" : 1,
-                                        "lastChangeTime" : 0.0,
-                                        "scalarValue" : 0.0,
-                                        "signalKind" : 2,
-                                        "state" : 0,
-                                        "stringValue" : "",
-                                        "vectorValue" : []
-                                    },
-                                    {
-                                        "connState" : 1,
-                                        "lastChangeTime" : 0.0,
-                                        "scalarValue" : 0.0,
-                                        "signalKind" : 2,
-                                        "state" : 0,
-                                        "stringValue" : "",
-                                        "vectorValue" : []
-                                    },
-                                    {
-                                        "connState" : 1,
-                                        "lastChangeTime" : 0.0,
-                                        "scalarValue" : 0.0,
-                                        "signalKind" : 2,
-                                        "state" : 0,
-                                        "stringValue" : "",
-                                        "vectorValue" : []
-                                    }
-                                ],
+                                "count" : 2,
+                                "defaultStates" : [],
                                 "direction" : 1,
                                 "isResizeable" : false,
-                                "names" : [ "X", "Initial Value", "Reset" ],
+                                "names" : [ "A", "B" ],
                                 "ports" : [],
                                 "quantityKind" : 2,
                                 "resizeSpec" : 
@@ -1136,8 +1107,8 @@
                                 "signalKind" : 2,
                                 "unit" : ""
                             },
-                            "name" : "Integrator",
-                            "opKind" : "none",
+                            "name" : "Add",
+                            "opKind" : "add",
                             "outputPorts" : 
                             {
                                 "count" : 1,
@@ -1168,25 +1139,16 @@
                                 "unit" : ""
                             },
                             "propDelay" : 0.0,
-                            "shouldAutoReschedule" : true,
+                            "shouldAutoReschedule" : false,
                             "typeName" : "math_compdef"
                         },
-                        "fnDefs" : [ "" ],
+                        "fnDefs" : [ "((-10) * ()) + ((-2) * ())" ],
                         "initialInputStates" : 
                         [
                             {
                                 "connState" : 1,
                                 "lastChangeTime" : 0.0,
                                 "scalarValue" : 0.0,
-                                "signalKind" : 2,
-                                "state" : 0,
-                                "stringValue" : "",
-                                "vectorValue" : []
-                            },
-                            {
-                                "connState" : 2,
-                                "lastChangeTime" : 0.0,
-                                "scalarValue" : 1.0,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
@@ -1218,52 +1180,47 @@
                         [
                             [
                                 {
-                                    "first" : 15367152407295324164,
+                                    "first" : 11885115606169027319,
                                     "second" : 0
                                 }
                             ],
-                            [],
-                            []
+                            [
+                                {
+                                    "first" : 16746529817031790531,
+                                    "second" : 0
+                                }
+                            ]
                         ],
                         "inputStates" : 
                         [
                             {
                                 "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : 0.001551585307246394,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : -0.0051044400492954792,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
                                 "vectorValue" : []
                             },
                             {
-                                "connState" : 2,
-                                "lastChangeTime" : 0.0,
-                                "scalarValue" : 1.0,
-                                "signalKind" : 2,
-                                "state" : 0,
-                                "stringValue" : "",
-                                "vectorValue" : []
-                            },
-                            {
-                                "connState" : 2,
-                                "lastChangeTime" : 0.0,
-                                "scalarValue" : 0.0,
+                                "connState" : 1,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : -0.020671925588801814,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
                                 "vectorValue" : []
                             }
                         ],
-                        "isInputConnected" : [ true, false, false ],
+                        "isInputConnected" : [ true, true ],
                         "isOutputConnected" : [ true ],
-                        "name" : "Integrator",
+                        "name" : "Add",
                         "netUuid" : 6761146192938794219,
                         "outputConnections" : 
                         [
                             [
                                 {
-                                    "first" : 11885115606169027319,
+                                    "first" : 15367152407295324164,
                                     "second" : 0
                                 }
                             ]
@@ -1272,15 +1229,15 @@
                         [
                             {
                                 "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : 0.0007308694846064422,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : -0.025776365638097293,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
                                 "vectorValue" : []
                             }
                         ],
-                        "uuid" : 1123128533167360871
+                        "uuid" : 2066063274664249606
                     },
                     {
                         "def" : 
@@ -1400,8 +1357,8 @@
                         [
                             {
                                 "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : 0.001551585307246394,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : 0.010335962794400907,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
@@ -1434,8 +1391,8 @@
                         [
                             {
                                 "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : -0.003103170614492788,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : -0.020671925588801814,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
@@ -1443,6 +1400,216 @@
                             }
                         ],
                         "uuid" : 16746529817031790531
+                    },
+                    {
+                        "def" : 
+                        {
+                            "autoRescheduleDelay" : 1000000.0,
+                            "behaviorType" : 0,
+                            "groupName" : "Calculus",
+                            "inputPorts" : 
+                            {
+                                "count" : 3,
+                                "defaultStates" : 
+                                [
+                                    {
+                                        "connState" : 1,
+                                        "lastChangeTime" : 0.0,
+                                        "scalarValue" : 0.0,
+                                        "signalKind" : 2,
+                                        "state" : 0,
+                                        "stringValue" : "",
+                                        "vectorValue" : []
+                                    },
+                                    {
+                                        "connState" : 1,
+                                        "lastChangeTime" : 0.0,
+                                        "scalarValue" : 0.0,
+                                        "signalKind" : 2,
+                                        "state" : 0,
+                                        "stringValue" : "",
+                                        "vectorValue" : []
+                                    },
+                                    {
+                                        "connState" : 1,
+                                        "lastChangeTime" : 0.0,
+                                        "scalarValue" : 0.0,
+                                        "signalKind" : 2,
+                                        "state" : 0,
+                                        "stringValue" : "",
+                                        "vectorValue" : []
+                                    }
+                                ],
+                                "direction" : 1,
+                                "isResizeable" : false,
+                                "names" : [ "X", "Initial Value", "Reset" ],
+                                "ports" : [],
+                                "quantityKind" : 2,
+                                "resizeSpec" : 
+                                {
+                                    "defaultState" : 
+                                    {
+                                        "connState" : 0,
+                                        "lastChangeTime" : 0.0,
+                                        "scalarValue" : 0.0,
+                                        "signalKind" : 0,
+                                        "state" : 2,
+                                        "stringValue" : "",
+                                        "vectorValue" : []
+                                    },
+                                    "name" : "",
+                                    "quantityKind" : 0,
+                                    "signalKind" : 0,
+                                    "unit" : ""
+                                },
+                                "signalKind" : 2,
+                                "unit" : ""
+                            },
+                            "name" : "Integrator",
+                            "opKind" : "none",
+                            "outputPorts" : 
+                            {
+                                "count" : 1,
+                                "defaultStates" : [],
+                                "direction" : 2,
+                                "isResizeable" : false,
+                                "names" : [ "Y" ],
+                                "ports" : [],
+                                "quantityKind" : 2,
+                                "resizeSpec" : 
+                                {
+                                    "defaultState" : 
+                                    {
+                                        "connState" : 0,
+                                        "lastChangeTime" : 0.0,
+                                        "scalarValue" : 0.0,
+                                        "signalKind" : 0,
+                                        "state" : 2,
+                                        "stringValue" : "",
+                                        "vectorValue" : []
+                                    },
+                                    "name" : "",
+                                    "quantityKind" : 0,
+                                    "signalKind" : 0,
+                                    "unit" : ""
+                                },
+                                "signalKind" : 2,
+                                "unit" : ""
+                            },
+                            "propDelay" : 0.0,
+                            "shouldAutoReschedule" : true,
+                            "typeName" : "math_compdef"
+                        },
+                        "fnDefs" : [ "" ],
+                        "initialInputStates" : 
+                        [
+                            {
+                                "connState" : 1,
+                                "lastChangeTime" : 0.0,
+                                "scalarValue" : 0.0,
+                                "signalKind" : 2,
+                                "state" : 0,
+                                "stringValue" : "",
+                                "vectorValue" : []
+                            },
+                            {
+                                "connState" : 2,
+                                "lastChangeTime" : 19.379999999999999,
+                                "scalarValue" : 10.0,
+                                "signalKind" : 2,
+                                "state" : 0,
+                                "stringValue" : "",
+                                "vectorValue" : []
+                            },
+                            {
+                                "connState" : 1,
+                                "lastChangeTime" : 0.0,
+                                "scalarValue" : 0.0,
+                                "signalKind" : 2,
+                                "state" : 0,
+                                "stringValue" : "",
+                                "vectorValue" : []
+                            }
+                        ],
+                        "initialOutputStates" : 
+                        [
+                            {
+                                "connState" : 1,
+                                "lastChangeTime" : 0.0,
+                                "scalarValue" : 0.0,
+                                "signalKind" : 2,
+                                "state" : 0,
+                                "stringValue" : "",
+                                "vectorValue" : []
+                            }
+                        ],
+                        "inputConnections" : 
+                        [
+                            [
+                                {
+                                    "first" : 15367152407295324164,
+                                    "second" : 0
+                                }
+                            ],
+                            [],
+                            []
+                        ],
+                        "inputStates" : 
+                        [
+                            {
+                                "connState" : 1,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : 0.010335962794400907,
+                                "signalKind" : 2,
+                                "state" : 0,
+                                "stringValue" : "",
+                                "vectorValue" : []
+                            },
+                            {
+                                "connState" : 2,
+                                "lastChangeTime" : 0.0,
+                                "scalarValue" : 10.0,
+                                "signalKind" : 2,
+                                "state" : 0,
+                                "stringValue" : "",
+                                "vectorValue" : []
+                            },
+                            {
+                                "connState" : 2,
+                                "lastChangeTime" : 0.0,
+                                "scalarValue" : 0.0,
+                                "signalKind" : 2,
+                                "state" : 0,
+                                "stringValue" : "",
+                                "vectorValue" : []
+                            }
+                        ],
+                        "isInputConnected" : [ true, false, false ],
+                        "isOutputConnected" : [ true ],
+                        "name" : "Integrator",
+                        "netUuid" : 6761146192938794219,
+                        "outputConnections" : 
+                        [
+                            [
+                                {
+                                    "first" : 11885115606169027319,
+                                    "second" : 0
+                                }
+                            ]
+                        ],
+                        "outputStates" : 
+                        [
+                            {
+                                "connState" : 1,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : 0.00051044400492954796,
+                                "signalKind" : 2,
+                                "state" : 0,
+                                "stringValue" : "",
+                                "vectorValue" : []
+                            }
+                        ],
+                        "uuid" : 1123128533167360871
                     },
                     {
                         "def" : 
@@ -1514,7 +1681,7 @@
                             "shouldAutoReschedule" : false,
                             "typeName" : "math_compdef"
                         },
-                        "fnDefs" : [ "(-100) * ()" ],
+                        "fnDefs" : [ "(-10) * ()" ],
                         "initialInputStates" : 
                         [
                             {
@@ -1528,8 +1695,8 @@
                             },
                             {
                                 "connState" : 2,
-                                "lastChangeTime" : 0.0,
-                                "scalarValue" : -100.0,
+                                "lastChangeTime" : 11.728,
+                                "scalarValue" : -10.0,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
@@ -1562,8 +1729,8 @@
                         [
                             {
                                 "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : 0.0007308694846064422,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : 0.00051044400492954796,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
@@ -1572,7 +1739,7 @@
                             {
                                 "connState" : 2,
                                 "lastChangeTime" : 0.0,
-                                "scalarValue" : -100.0,
+                                "scalarValue" : -10.0,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
@@ -1596,8 +1763,8 @@
                         [
                             {
                                 "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : -0.073086948460644216,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : -0.0051044400492954792,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
@@ -1605,173 +1772,6 @@
                             }
                         ],
                         "uuid" : 11885115606169027319
-                    },
-                    {
-                        "def" : 
-                        {
-                            "autoRescheduleDelay" : 0.0,
-                            "behaviorType" : 0,
-                            "groupName" : "Maths",
-                            "inputPorts" : 
-                            {
-                                "count" : 2,
-                                "defaultStates" : [],
-                                "direction" : 1,
-                                "isResizeable" : false,
-                                "names" : [ "A", "B" ],
-                                "ports" : [],
-                                "quantityKind" : 2,
-                                "resizeSpec" : 
-                                {
-                                    "defaultState" : 
-                                    {
-                                        "connState" : 0,
-                                        "lastChangeTime" : 0.0,
-                                        "scalarValue" : 0.0,
-                                        "signalKind" : 0,
-                                        "state" : 2,
-                                        "stringValue" : "",
-                                        "vectorValue" : []
-                                    },
-                                    "name" : "",
-                                    "quantityKind" : 0,
-                                    "signalKind" : 0,
-                                    "unit" : ""
-                                },
-                                "signalKind" : 2,
-                                "unit" : ""
-                            },
-                            "name" : "Add",
-                            "opKind" : "add",
-                            "outputPorts" : 
-                            {
-                                "count" : 1,
-                                "defaultStates" : [],
-                                "direction" : 2,
-                                "isResizeable" : false,
-                                "names" : [ "Y" ],
-                                "ports" : [],
-                                "quantityKind" : 2,
-                                "resizeSpec" : 
-                                {
-                                    "defaultState" : 
-                                    {
-                                        "connState" : 0,
-                                        "lastChangeTime" : 0.0,
-                                        "scalarValue" : 0.0,
-                                        "signalKind" : 0,
-                                        "state" : 2,
-                                        "stringValue" : "",
-                                        "vectorValue" : []
-                                    },
-                                    "name" : "",
-                                    "quantityKind" : 0,
-                                    "signalKind" : 0,
-                                    "unit" : ""
-                                },
-                                "signalKind" : 2,
-                                "unit" : ""
-                            },
-                            "propDelay" : 0.0,
-                            "shouldAutoReschedule" : false,
-                            "typeName" : "math_compdef"
-                        },
-                        "fnDefs" : [ "((-100) * ()) + ((-2) * ())" ],
-                        "initialInputStates" : 
-                        [
-                            {
-                                "connState" : 1,
-                                "lastChangeTime" : 0.0,
-                                "scalarValue" : 0.0,
-                                "signalKind" : 2,
-                                "state" : 0,
-                                "stringValue" : "",
-                                "vectorValue" : []
-                            },
-                            {
-                                "connState" : 1,
-                                "lastChangeTime" : 0.0,
-                                "scalarValue" : 0.0,
-                                "signalKind" : 2,
-                                "state" : 0,
-                                "stringValue" : "",
-                                "vectorValue" : []
-                            }
-                        ],
-                        "initialOutputStates" : 
-                        [
-                            {
-                                "connState" : 1,
-                                "lastChangeTime" : 0.0,
-                                "scalarValue" : 0.0,
-                                "signalKind" : 2,
-                                "state" : 0,
-                                "stringValue" : "",
-                                "vectorValue" : []
-                            }
-                        ],
-                        "inputConnections" : 
-                        [
-                            [
-                                {
-                                    "first" : 11885115606169027319,
-                                    "second" : 0
-                                }
-                            ],
-                            [
-                                {
-                                    "first" : 16746529817031790531,
-                                    "second" : 0
-                                }
-                            ]
-                        ],
-                        "inputStates" : 
-                        [
-                            {
-                                "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : -0.073086948460644216,
-                                "signalKind" : 2,
-                                "state" : 0,
-                                "stringValue" : "",
-                                "vectorValue" : []
-                            },
-                            {
-                                "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : -0.003103170614492788,
-                                "signalKind" : 2,
-                                "state" : 0,
-                                "stringValue" : "",
-                                "vectorValue" : []
-                            }
-                        ],
-                        "isInputConnected" : [ true, true ],
-                        "isOutputConnected" : [ true ],
-                        "name" : "Add",
-                        "netUuid" : 6761146192938794219,
-                        "outputConnections" : 
-                        [
-                            [
-                                {
-                                    "first" : 15367152407295324164,
-                                    "second" : 0
-                                }
-                            ]
-                        ],
-                        "outputStates" : 
-                        [
-                            {
-                                "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : -0.076190119075137008,
-                                "signalKind" : 2,
-                                "state" : 0,
-                                "stringValue" : "",
-                                "vectorValue" : []
-                            }
-                        ],
-                        "uuid" : 2066063274664249606
                     },
                     {
                         "def" : 
@@ -1930,8 +1930,8 @@
                         [
                             {
                                 "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : -0.076190119075137008,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : -0.025776365638097293,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
@@ -1977,8 +1977,8 @@
                         [
                             {
                                 "connState" : 1,
-                                "lastChangeTime" : 7.5499999999999998,
-                                "scalarValue" : 0.001551585307246394,
+                                "lastChangeTime" : 8.0,
+                                "scalarValue" : 0.010335962794400907,
                                 "signalKind" : 2,
                                 "state" : 0,
                                 "stringValue" : "",
