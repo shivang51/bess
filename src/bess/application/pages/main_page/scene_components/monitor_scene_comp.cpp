@@ -608,7 +608,7 @@ namespace Bess::Canvas {
             context.renderer->beginPath({
                 .strokeColor = linkColor,
                 .renderFill = false,
-                .zIndex = z + 0.0001f,
+                .zIndex = 0.5f,
                 .id = PickingId{m_runtimeId, 1},
                 .closePath = false,
                 .transformMode = context.transformMode,
