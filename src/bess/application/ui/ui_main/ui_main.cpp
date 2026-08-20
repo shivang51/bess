@@ -10,6 +10,7 @@
 #include "pages/main_page/main_page.h"
 #include "project_session/project_session.h"
 #include "simulation_engine.h"
+#include "stamp_data_viewer.h"
 #include "stb_image_write.h"
 #include "ui/icons/CodIcons_Remapped.h"
 #include "ui/project_api.h"
@@ -1134,6 +1135,7 @@ namespace Bess::UI {
         registerPanel<PropertiesPanel>();
         registerPanel<ProjectSettingsWindow>();
         registerPanel<SceneExportWindow>();
+        registerPanel<StampDataViewer>();
         registerPanel<SettingsWindow>();
         registerPanel<SceneViewportPanel>("Scene Viewport");
         registerPanel<SceneViewportPanel>("Scene Viewport 2");
