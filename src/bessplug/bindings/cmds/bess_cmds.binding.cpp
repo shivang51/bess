@@ -78,14 +78,15 @@ void bind_cmds(py::module &m) {
         std::string name;
         std::string desc;
         std::vector<py::arg> args;
+        std::string _argsCache;
     };
 
-    std::vector<CmdDefs> cmdDefs;
+    static std::vector<CmdDefs> cmdDefs;
 
-    const auto addCmd = [&m, &cmdDefs](const std::string &name,
-                                       const auto &function,
-                                       const std::string &desc,
-                                       const auto &...args) {
+    const auto addCmd = [&m](const std::string &name,
+                             const auto &function,
+                             const std::string &desc,
+                             const auto &...args) {
         m.def(name.c_str(), function, desc.c_str(), args...);
 
         std::vector<py::arg> vec{args...};
@@ -457,18 +458,24 @@ void bind_cmds(py::module &m) {
            "Gets the status of the currently running asynchronous script.");
 
     /// KEEP THIS PRINT CMD AT THE END
-    m.def("print_cmds", [cmdDefs]() {
+    m.def("print_cmds", []() {
         py::print("Available commands:");
-        for (const auto &cmd : cmdDefs) {
-            std::string argsStr;
-            for (size_t i = 0; i < cmd.args.size(); ++i) {
-                argsStr += cmd.args[i].name;
-                if (i < cmd.args.size() - 1) {
-                    argsStr += ", ";
+
+        for (auto &cmd : cmdDefs) {
+            if (cmd._argsCache.empty() && !cmd.args.empty()) {
+                std::string argsStr;
+                for (size_t i = 0; i < cmd.args.size(); ++i) {
+                    argsStr += cmd.args[i].name;
+                    if (i < cmd.args.size() - 1) {
+                        argsStr += ", ";
+                    }
                 }
+                argsStr += ")";
+                cmd._argsCache = argsStr;
             }
-            argsStr += ")";
-            py::print("\t" + cmd.name + "(" + argsStr + "):\n\t\t" + cmd.desc);
+
+            py::print("\t" + cmd.name + "(" + cmd._argsCache + "):\n\t\t" +
+                      cmd.desc);
         }
     });
 }
