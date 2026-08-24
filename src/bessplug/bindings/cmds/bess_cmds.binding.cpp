@@ -5,7 +5,6 @@
 #include "dig_sim_driver.h"
 #include "pages/main_page/scene_components/connection_scene_component.h" // IWYU pragma: keep
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/project_api.h"
 #include "ui/ui_main/component_explorer.h"
@@ -13,6 +12,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <type_traits>
 
 namespace py = pybind11;
 
@@ -64,10 +64,33 @@ findDigCompBySceneId(uint64_t compId);
 void bind_cmd_results(py::module &m);
 void bind_async_script_status(py::module &m);
 void bind_script_logger(py::module &m);
+
+template <typename... Args> auto collectArgs(Args... args) {
+    return std::vector<std::common_type_t<Args...>>{args...};
+}
+
 void bind_cmds(py::module &m) {
     bind_cmd_results(m);
     bind_async_script_status(m);
     bind_script_logger(m);
+
+    struct CmdDefs {
+        std::string name;
+        std::string desc;
+        std::vector<py::arg> args;
+    };
+
+    std::vector<CmdDefs> cmdDefs;
+
+    const auto addCmd = [&m, &cmdDefs](const std::string &name,
+                                       const auto &function,
+                                       const std::string &desc,
+                                       const auto &...args) {
+        m.def(name.c_str(), function, desc.c_str(), args...);
+
+        std::vector<py::arg> vec{args...};
+        cmdDefs.push_back({name, desc, std::move(vec)});
+    };
 
     auto addCompFn = [](const std::string &name) -> CmdResult {
         const auto &catalog = Bess::SimEngine::ComponentCatalog::instance();
@@ -86,10 +109,10 @@ void bind_cmds(py::module &m) {
         return {py::cast(compId), ""};
     };
 
-    m.def("add",
-          addCompFn,
-          "Adds a component to the current circuit by definition name.",
-          py::arg("comp_name"));
+    addCmd("add",
+           addCompFn,
+           "Adds a component to the current circuit by definition name.",
+           py::arg("comp_name"));
 
     // N stands for by name
     auto getInpStatesN = [](const std::string &compName) -> CmdResult {
@@ -106,11 +129,11 @@ void bind_cmds(py::module &m) {
         return {py::cast(states), ""};
     };
 
-    m.def("get_inp_states_n",
-          getInpStatesN,
-          "Gets the states of any components input slots. \
-					For it work make sure component name is unique in your circuit",
-          py::arg("comp_name"));
+    addCmd("get_inp_states_n",
+           getInpStatesN,
+           "Gets the states of any components input slots. "
+           "For it work make sure component name is unique in your circuit",
+           py::arg("comp_name"));
 
     auto getInpStates = [](uint64_t compId) -> CmdResult {
         const auto &comp = findDigCompBySceneId(compId);
@@ -126,10 +149,10 @@ void bind_cmds(py::module &m) {
         return {py::cast(states), ""};
     };
 
-    m.def("get_inp_states",
-          getInpStates,
-          "Gets the states of any components input slots.",
-          py::arg("comp_id"));
+    addCmd("get_inp_states",
+           getInpStates,
+           "Gets the states of any components input slots.",
+           py::arg("comp_id"));
 
     auto getOutStatesN = [](const std::string &compName) -> CmdResult {
         const auto &comp = findUniqueDigCompByName(compName);
@@ -145,11 +168,11 @@ void bind_cmds(py::module &m) {
         return {py::cast(states), ""};
     };
 
-    m.def("get_out_states_n",
-          getOutStatesN,
-          "Gets the states of any components output slots. \
-					For it work make sure component name is unique in your circuit",
-          py::arg("comp_name"));
+    addCmd("get_out_states_n",
+           getOutStatesN,
+           "Gets the states of any components output slots. "
+           "For it work make sure component name is unique in your circuit",
+           py::arg("comp_name"));
 
     auto getOutStates = [](uint64_t compId) -> CmdResult {
         const auto &comp = findDigCompBySceneId(compId);
@@ -166,10 +189,10 @@ void bind_cmds(py::module &m) {
         return {py::cast(states), ""};
     };
 
-    m.def("get_out_states",
-          getOutStates,
-          "Gets the states of any components output slots.",
-          py::arg("comp_id"));
+    addCmd("get_out_states",
+           getOutStates,
+           "Gets the states of any components output slots.",
+           py::arg("comp_id"));
 
     auto setInpStateNFn =
         [](const std::string &compName,
@@ -185,8 +208,8 @@ void bind_cmds(py::module &m) {
                 ->getBehaviorType() !=
             Bess::SimEngine::ComponentBehaviorType::input) {
 
-            BESS_ERROR("Component '{}' is not an input component.\
-												Only input components can have their input state set.",
+            BESS_ERROR("Component '{}' is not an input component. "
+                       "Only input components can have their input state set.",
                        compName);
             return {py::none(), "Component is not an input component"};
         }
@@ -197,13 +220,13 @@ void bind_cmds(py::module &m) {
     };
 
     // id is of scene component
-    m.def("set_inp_comp_state_n",
-          setInpStateNFn,
-          "Sets the state of input coponent slot. \
-					For it work make sure input names are unique in your circuit",
-          py::arg("comp_name"),
-          py::arg("slot_idx"),
-          py::arg("state"));
+    addCmd("set_inp_comp_state_n",
+           setInpStateNFn,
+           "Sets the state of input coponent slot. "
+           "For it work make sure input names are unique in your circuit",
+           py::arg("comp_name"),
+           py::arg("slot_idx"),
+           py::arg("state"));
 
     auto setInpStateFn =
         [](uint64_t compId,
@@ -218,8 +241,8 @@ void bind_cmds(py::module &m) {
                 ->getBehaviorType() !=
             Bess::SimEngine::ComponentBehaviorType::input) {
 
-            BESS_ERROR("Component with id {} is not an input component.\
-												Only input components can have their input state set.",
+            BESS_ERROR("Component with id {} is not an input component. "
+                       "Only input components can have their input state set.",
                        compId);
             return {py::none(), "Component is not an input component"};
         }
@@ -285,16 +308,16 @@ void bind_cmds(py::module &m) {
                       : CmdResult{py::none(), result.msg};
     };
 
-    m.def("connect",
-          connectSlotsFn,
-          "Connects two slots together.\
-					Use port directions and indices to specify the ports to connect.",
-          py::arg("from_comp_id"),
-          py::arg("from_direction"),
-          py::arg("from_port_idx"),
-          py::arg("to_comp_id"),
-          py::arg("to_direction"),
-          py::arg("to_port_idx"));
+    addCmd("connect",
+           connectSlotsFn,
+           "Connects two slots together. "
+           "Use port directions and indices to specify the ports to connect.",
+           py::arg("from_comp_id"),
+           py::arg("from_direction"),
+           py::arg("from_port_idx"),
+           py::arg("to_comp_id"),
+           py::arg("to_direction"),
+           py::arg("to_port_idx"));
 
     // organize components
     auto orgCompsFn = []() -> CmdResult {
@@ -314,17 +337,17 @@ void bind_cmds(py::module &m) {
             ""};
     };
 
-    m.def("org_comps",
-          orgCompsFn,
-          "Organizes components in the scene using a specified method.\
-					Currently only 'hierarchical' method is supported.");
+    addCmd("org_comps",
+           orgCompsFn,
+           "Organizes components in the scene using a specified method."
+           "Currently only 'hierarchical' method is supported.");
 
-    m.def("set_inp_comp_state",
-          setInpStateFn,
-          "Sets the state of input component slot.",
-          py::arg("comp_id"),
-          py::arg("slot_idx"),
-          py::arg("state"));
+    addCmd("set_inp_comp_state",
+           setInpStateFn,
+           "Sets the state of input component slot.",
+           py::arg("comp_id"),
+           py::arg("slot_idx"),
+           py::arg("state"));
 
     auto execCmdFn = [](const std::string &cmd) -> CmdResult {
         if (!cmd.starts_with("bessplug.cmds")) {
@@ -345,7 +368,7 @@ void bind_cmds(py::module &m) {
         }
     };
 
-    m.def(
+    addCmd(
         "clear",
         []() -> CmdResult {
             const auto status = Bess::UI::Proj::newProj();
@@ -356,10 +379,10 @@ void bind_cmds(py::module &m) {
         },
         "Clears the current circuit, removing all components and connections.");
 
-    m.def("exec",
-          execCmdFn,
-          "Executes a single bessplug command.",
-          py::arg("cmd"));
+    addCmd("exec",
+           execCmdFn,
+           "Executes a single bessplug command.",
+           py::arg("cmd"));
 
     auto execScriptFn = [](const std::string &script) -> CmdResult {
         py::gil_scoped_acquire lock{};
@@ -389,10 +412,10 @@ void bind_cmds(py::module &m) {
         }
     };
 
-    m.def("exec_script",
-          execScriptFn,
-          "Executes a Python script containing multiple bessplug commands.",
-          py::arg("script"));
+    addCmd("exec_script",
+           execScriptFn,
+           "Executes a Python script containing multiple bessplug commands.",
+           py::arg("script"));
 
     auto execAsyncScriptFn =
         [execScriptFn](const std::string &script) -> CmdResult {
@@ -418,20 +441,36 @@ void bind_cmds(py::module &m) {
         return {py::cast(true), ""};
     };
 
-    m.def(
-        "exec_script_async",
-        execAsyncScriptFn,
-        "Executes a Python script asynchronously. Returns immediately with success status.\
-					Use get_status() to check if the script is still running.",
-        py::arg("script"));
+    addCmd("exec_script_async",
+           execAsyncScriptFn,
+           "Executes a Python script asynchronously. Returns immediately with "
+           "success status."
+           "Use get_status() to check if the script is still running.",
+           py::arg("script"));
 
     auto getAsyncScriptStatusFn = []() -> std::shared_ptr<AsyncScriptStatus> {
         return status;
     };
 
-    m.def("get_async_script_status",
-          getAsyncScriptStatusFn,
-          "Gets the status of the currently running asynchronous script.");
+    addCmd("get_async_script_status",
+           getAsyncScriptStatusFn,
+           "Gets the status of the currently running asynchronous script.");
+
+    /// KEEP THIS PRINT CMD AT THE END
+    m.def("print_cmds", [cmdDefs]() {
+        py::print("Available commands:");
+        for (const auto &cmd : cmdDefs) {
+            std::string argsStr;
+            for (size_t i = 0; i < cmd.args.size(); ++i) {
+                argsStr += cmd.args[i].name;
+                if (i < cmd.args.size() - 1) {
+                    argsStr += ", ";
+                }
+            }
+            argsStr += ")";
+            py::print("\t" + cmd.name + "(" + argsStr + "):\n\t\t" + cmd.desc);
+        }
+    });
 }
 
 void bind_cmd_results(py::module &m) {
