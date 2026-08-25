@@ -1,6 +1,7 @@
 #include "bess_core/scene_driver.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "component_catalog.h"
 #include "dig_sim_driver.h"
 #include "pages/main_page/scene_components/connection_scene_component.h" // IWYU pragma: keep
@@ -253,19 +254,44 @@ void bind_cmds(py::module &m) {
         return {py::cast(true), ""};
     };
 
+    auto setScalarPortState =
+        [](uint64_t compId,
+           int slotIdx,
+           const Bess::SimEngine::LogicState &state) -> CmdResult {
+        const auto &comp = findDigCompBySceneId(compId);
+        if (!comp) {
+            return {py::none(), "Component not found"};
+        }
+
+        return {.error = ""};
+    };
+
     // connect slots
 
     auto connectSlotsFn = [](const Bess::UUID &fromCompId,
-                             Bess::SimEngine::PortDirection fromDirection,
+                             const std::string &fromDir,
                              int fromPortIdx,
                              const Bess::UUID &toCompId,
-                             Bess::SimEngine::PortDirection toDirection,
+                             const std::string &toDir,
                              int toPortIdx) -> CmdResult {
         auto &sceneDriver = Bess::UI::Proj::scenes();
         const auto scene = sceneDriver.getActiveScene();
         if (!scene) {
             return {py::none(), "No active scene"};
         }
+
+        if (fromDir != "inp" && fromDir != "out") {
+            return {py::none(),
+                    "Invalid slot direction. It should be either 'inp' or "
+                    "'out'"};
+        }
+
+        if (toDir != "inp" && toDir != "out") {
+            return {py::none(),
+                    "Invalid slot direction. It should be either 'inp' or "
+                    "'out'"};
+        }
+
         const auto fromComp =
             scene->getState()
                 .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(
@@ -277,10 +303,20 @@ void bind_cmds(py::module &m) {
         if (!fromComp || !toComp || fromPortIdx < 0 || toPortIdx < 0) {
             return {py::none(), "Component or port index is invalid"};
         }
+
+        const auto parseDir = [](const std::string &dir) {
+            return dir == "inp" ? Bess::SimEngine::PortDirection::input
+                                : Bess::SimEngine::PortDirection::output;
+        };
+
         const auto validDir = [](Bess::SimEngine::PortDirection direction) {
             return direction == Bess::SimEngine::PortDirection::input ||
                    direction == Bess::SimEngine::PortDirection::output;
         };
+
+        const auto fromDirection = parseDir(fromDir);
+        const auto toDirection = parseDir(toDir);
+
         if (!validDir(fromDirection) || !validDir(toDirection)) {
             return {py::none(), "Port direction is invalid"};
         }
@@ -458,26 +494,29 @@ void bind_cmds(py::module &m) {
            "Gets the status of the currently running asynchronous script.");
 
     /// KEEP THIS PRINT CMD AT THE END
-    m.def("print_cmds", []() {
-        py::print("Available commands:");
+    m.def(
+        "print_cmds",
+        []() {
+            py::print("Available commands:");
 
-        for (auto &cmd : cmdDefs) {
-            if (cmd._argsCache.empty() && !cmd.args.empty()) {
-                std::string argsStr;
-                for (size_t i = 0; i < cmd.args.size(); ++i) {
-                    argsStr += cmd.args[i].name;
-                    if (i < cmd.args.size() - 1) {
-                        argsStr += ", ";
+            for (auto &cmd : cmdDefs) {
+                if (cmd._argsCache.empty() && !cmd.args.empty()) {
+                    std::string argsStr;
+                    for (size_t i = 0; i < cmd.args.size(); ++i) {
+                        argsStr += cmd.args[i].name;
+                        if (i < cmd.args.size() - 1) {
+                            argsStr += ", ";
+                        }
                     }
+                    argsStr += ")";
+                    cmd._argsCache = argsStr;
                 }
-                argsStr += ")";
-                cmd._argsCache = argsStr;
-            }
 
-            py::print("\t" + cmd.name + "(" + cmd._argsCache + "):\n\t\t" +
-                      cmd.desc);
-        }
-    });
+                py::print("\t" + cmd.name + "(" + cmd._argsCache + "):\n\t\t" +
+                          cmd.desc);
+            }
+        },
+        "Prints all the cmds.");
 }
 
 void bind_cmd_results(py::module &m) {
