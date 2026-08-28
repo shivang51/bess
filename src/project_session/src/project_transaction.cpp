@@ -836,9 +836,8 @@ namespace Bess {
                     (m_tracked && item->toJson() == expected)) {
                     return Status::ok();
                 }
-                return Status::fail(
-                    Err::conflict,
-                    "component changed before it was tracked");
+                return Status::fail(Err::conflict,
+                                    "component changed before it was tracked");
             }
 
             Status put(ProjectSession &session, const Json::Value &data) {

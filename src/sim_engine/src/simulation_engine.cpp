@@ -650,9 +650,8 @@ namespace Bess::SimEngine {
 
         const auto generation = m_runGeneration.load();
         try {
-            m_schedulerThread = std::thread([this, generation]() {
-                schedulerLoop(generation, true);
-            });
+            m_schedulerThread = std::thread(
+                [this, generation]() { schedulerLoop(generation, true); });
         } catch (const std::exception &error) {
             BESS_ERROR("Failed to create the simulation scheduler thread: {}",
                        error.what());

@@ -369,9 +369,7 @@ namespace Bess::SimEngine::Drivers {
         bool hasSelfSimulationAtStart = false;
         for (const auto &component : selfScheduledComponents) {
             const auto eventTime = initialEventTime(component, startTime);
-            scheduleEvtLocked(component->getUuid(),
-                              eventTime,
-                              UUID::null);
+            scheduleEvtLocked(component->getUuid(), eventTime, UUID::null);
             hasSelfSimulationAtStart =
                 hasSelfSimulationAtStart || eventTime == startTime;
         }

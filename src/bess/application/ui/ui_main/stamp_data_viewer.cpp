@@ -502,8 +502,8 @@ namespace Bess::UI {
                         timeValue(sample.simTime, timeUnit);
                     ImGui::TextUnformatted(displayedTime.c_str());
                     if (timeUnit != 0 && ImGui::IsItemHovered()) {
-                        const auto exactTime = std::format(
-                            "{:.17g} ns", sample.simTime.count());
+                        const auto exactTime =
+                            std::format("{:.17g} ns", sample.simTime.count());
                         ImGui::SetTooltip("%s", exactTime.c_str());
                     }
 

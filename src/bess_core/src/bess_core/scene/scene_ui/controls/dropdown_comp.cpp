@@ -149,8 +149,7 @@ namespace Bess::Canvas::UI {
         m_node->setMargin(m_style.metrics.margin);
 
         const auto contentHeight = std::max(
-            1.f,
-            m_cachedHeaderSize.y - m_style.metrics.padding.vertical());
+            1.f, m_cachedHeaderSize.y - m_style.metrics.padding.vertical());
         const auto chevronSize = std::min(kChevronWidth, contentHeight);
         const auto labelWidth = std::max(
             1.f,

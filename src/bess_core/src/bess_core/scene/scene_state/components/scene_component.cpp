@@ -11,8 +11,7 @@
 #include <limits>
 namespace Bess::Canvas {
     namespace {
-        std::size_t saturatedAdd(std::size_t lhs,
-                                 std::size_t rhs) noexcept {
+        std::size_t saturatedAdd(std::size_t lhs, std::size_t rhs) noexcept {
             constexpr auto max = std::numeric_limits<std::size_t>::max();
             return rhs > max - lhs ? max : lhs + rhs;
         }
@@ -189,8 +188,7 @@ namespace Bess::Canvas {
         auto bytes = sizeof(*this);
         bytes = saturatedAdd(bytes, m_name.capacity());
         bytes = saturatedAdd(bytes, m_icon.capacity());
-        bytes = saturatedAdd(
-            bytes, m_childComponents.size() * sizeof(UUID));
+        bytes = saturatedAdd(bytes, m_childComponents.size() * sizeof(UUID));
         return bytes;
     }
 

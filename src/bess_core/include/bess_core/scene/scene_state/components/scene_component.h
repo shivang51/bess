@@ -234,8 +234,7 @@ namespace Bess::Canvas {
         // Approximate the host memory retained by this component. This must
         // stay cheap: transaction history uses it while updating its budget.
         // Components that own sizeable dynamic buffers should override it.
-        [[nodiscard]] virtual std::size_t
-        estimatedMemoryUsage() const noexcept;
+        [[nodiscard]] virtual std::size_t estimatedMemoryUsage() const noexcept;
 
         virtual void beforeSerialize(const SceneState &state);
         virtual void onLoaded(const SceneLoadCtx &ctx);

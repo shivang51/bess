@@ -23,8 +23,8 @@ namespace Bess::UI {
         constexpr std::size_t kMaxInlineSerializedComponentBytes =
             std::size_t{1} * 1024U * 1024U;
 
-        Json::Value debugComponentJson(
-            const Canvas::SceneComponent &component) {
+        Json::Value
+        debugComponentJson(const Canvas::SceneComponent &component) {
             const auto estimatedBytes = component.estimatedMemoryUsage();
             if (estimatedBytes <= kMaxInlineSerializedComponentBytes) {
                 return component.toJson();
