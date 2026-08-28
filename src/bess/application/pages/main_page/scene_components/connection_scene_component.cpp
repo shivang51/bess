@@ -341,30 +341,66 @@ namespace Bess::Canvas {
         auto &segments = isSchematic ? m_schematicSegments : m_segments;
         segments.clear();
 
-        auto startSlotComp = state.getComponentByUuid(m_startSlot);
-        auto endSlotComp = state.getComponentByUuid(m_endSlot);
+        auto startSlotComp =
+            state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+        auto endSlotComp =
+            state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
 
         if (!startSlotComp || !endSlotComp)
             return;
 
-        const auto startPos =
+        const auto posA =
             startSlotComp->getAbsolutePosition(state, isSchematic);
-        const auto endPos =
-            endSlotComp->getAbsolutePosition(state, isSchematic);
+        const auto posB = endSlotComp->getAbsolutePosition(state, isSchematic);
 
-        const float midX = (endPos.x - startPos.x) / 2.f;
+        const bool posAStart =
+            (posA.x < posB.x) || (posA.x == posB.x && posA.y < posB.y);
+
+        if (!posAStart) {
+            std::swap(m_startSlot, m_endSlot);
+            startSlotComp =
+                state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+            endSlotComp =
+                state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+        }
+
+        const auto startPos = posAStart ? posA : posB;
+        const auto endPos = posAStart ? posB : posA;
+
         const float height = (endPos.y - startPos.y) / 2.f;
 
-        ConnSegment midPoint;
-        midPoint.offset = glm::vec2{midX, 0};
-        midPoint.orientation = ConnSegOrientaion::horizontal;
-        segments.emplace_back(midPoint);
+        if (!startSlotComp->isInputSlot()) {
+            const float midX = (endPos.x - startPos.x) / 2.f;
+            segments.emplace_back(ConnSegment::horizontal({midX, 0}));
 
-        if (m_initialSegmentCount == 3) {
-            ConnSegment endPoint;
-            endPoint.offset = glm::vec2{0, height};
-            endPoint.orientation = ConnSegOrientaion::vertical;
-            segments.emplace_back(endPoint);
+            if (m_initialSegmentCount == 3) {
+                segments.emplace_back(ConnSegment::vertical({0, height}));
+            }
+        } else {
+            constexpr float hDisp = 40.f; // Offseting horizontal seg by this
+            float vDisp = 100.f;          // Offsetting vertical seg by this
+
+            const auto parentComp =
+                state.getComponentByUuid(startSlotComp->getParentComponent());
+            const auto parentY =
+                parentComp->getAbsolutePosition(state, isSchematic).y;
+
+            /// TODO (Shivang): Refine this, its still not good
+            if (startPos.y < endPos.y) {
+                const float dy =
+                    parentY - (parentComp->getTransform().scale.y / 2.f) - 20.f;
+                vDisp = dy - startPos.y;
+            } else {
+                const float dy =
+                    parentY + (parentComp->getTransform().scale.y / 2.f) + 20.f;
+                vDisp = startPos.y - dy;
+            }
+
+            segments.emplace_back(ConnSegment::horizontal({-hDisp, 0.f}));
+            segments.emplace_back(ConnSegment::vertical({0.f, -vDisp}));
+            segments.emplace_back(ConnSegment::horizontal(
+                {(endPos.x - startPos.x) + (hDisp * 2.f), 0.f}));
+            segments.emplace_back(ConnSegment::vertical({0.f, vDisp + height}));
         }
 
         m_segmentPosCacheDirty = true;

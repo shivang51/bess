@@ -61,6 +61,14 @@ namespace Bess::Canvas {
     struct BESS_API ConnSegment {
         glm::vec2 offset;
         ConnSegOrientaion orientation = ConnSegOrientaion::horizontal;
+
+        static ConnSegment horizontal(const glm::vec2 &offset) {
+            return {offset, ConnSegOrientaion::horizontal};
+        }
+
+        static ConnSegment vertical(const glm::vec2 &offset) {
+            return {offset, ConnSegOrientaion::vertical};
+        }
     };
 
 } // namespace Bess::Canvas
