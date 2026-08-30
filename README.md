@@ -19,6 +19,8 @@ The project began as an attempt to remove the barriers students often face when 
 4. Verilog script import also works when working with digital components.
 5. Cross platform support for windows and linux.
 
+### Web Link -  [Check Here](https://bess-orpin.vercel.app/Bess)
+> Web Support is currently limited as plugins are not supported for now.
 
 ## Screenshots - [More](screenshots/README.md)
 
@@ -57,6 +59,6 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ```
 ## TODO
 - [x] Architecture Overhaul and Usability Improvements - [Details](https://github.com/shivang51/bess/pull/25)
-- [ ] Web Support
-- [ ] LLM Integration
-- [ ] Analog Component Support
+- [x] Web Support - Kind of done - [Check Here](https://bess-orpin.vercel.app/Bess)
+- [ ] Good Test Harness
+- [ ] Stability and UX Improvements
