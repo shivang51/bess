@@ -369,27 +369,26 @@ namespace Bess::Canvas {
 
         const float height = (endPos.y - startPos.y) / 2.f;
 
-        if (!startSlotComp->isInputSlot()) {
+        if (!startSlotComp->isInputSlot()) { // Connect normally
             const float midX = (endPos.x - startPos.x) / 2.f;
             segments.emplace_back(ConnSegment::horizontal({midX, 0}));
 
             if (m_initialSegmentCount == 3) {
                 segments.emplace_back(ConnSegment::vertical({0, height}));
             }
-        } else {
+        } else { // Connect by wrapping around the gates
             constexpr float hDisp = 40.f; // Offseting horizontal seg by this
-            float vDisp = 100.f;          // Offsetting vertical seg by this
 
             const auto parentComp =
                 state.getComponentByUuid(startSlotComp->getParentComponent());
             const auto parentY =
                 parentComp->getAbsolutePosition(state, isSchematic).y;
 
-            /// TODO (Shivang): Refine this, its still not good
-            if (startPos.y < endPos.y) {
+            float vDisp = height; // Offsetting vertical seg by this
+            if (startPos.y < parentY) {
                 const float dy =
                     parentY - (parentComp->getTransform().scale.y / 2.f) - 20.f;
-                vDisp = dy - startPos.y;
+                vDisp = startPos.y - dy;
             } else {
                 const float dy =
                     parentY + (parentComp->getTransform().scale.y / 2.f) + 20.f;
