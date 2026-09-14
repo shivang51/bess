@@ -60,5 +60,6 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 ## TODO
 - [x] Architecture Overhaul and Usability Improvements - [Details](https://github.com/shivang51/bess/pull/25)
 - [x] Web Support - Kind of done - [Check Here](https://bess-orpin.vercel.app/Bess)
+- [ ] Architectural Changes
 - [ ] Good Test Harness
 - [ ] Stability and UX Improvements
