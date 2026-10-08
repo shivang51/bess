@@ -1,6 +1,7 @@
 #include "bess_wgpu/text/bitmap_text_pipeline.h"
 
 #include "bess_wgpu/wgpu_shader.h"
+#include "bess_wgpu/wgpu_texture.h"
 #include "common/logger.h"
 
 #include <algorithm>
@@ -86,6 +87,46 @@ namespace Bess::Wgpu::Text {
 
             offset = start + length;
             return codepoint;
+        }
+
+        struct BitmapPlacement {
+            uint32_t pixelSize = 0;
+            float worldPerPixelX = 1.f;
+            float worldPerPixelY = 1.f;
+            float lineHeightPx = 1.f;
+            float spaceAdvancePx = 1.f;
+            float letterSpacingPx = 0.f;
+            BitmapTextLineMetrics metrics{};
+        };
+
+        BitmapPlacement
+        makeBitmapPlacement(const Core::Renderer::FontProps &props,
+                            const TextPixelSpace &space,
+                            BitmapFontAtlas &atlas) {
+            BitmapPlacement place;
+            const float projected =
+                std::max(space.projectedPixelSize(props.fontSize), 1.f);
+            place.pixelSize = atlas.quantizePixelSize(projected);
+            place.worldPerPixelX =
+                1.f / std::max(space.pixelsPerWorldX, 0.0001f);
+            place.worldPerPixelY =
+                1.f / std::max(space.pixelsPerWorldY, 0.0001f);
+            place.metrics = atlas.metricsForSize(place.pixelSize);
+            if (props.lineHeight > 0.f) {
+                place.lineHeightPx =
+                    std::max(props.lineHeight * space.pixelsPerWorldY, 1.f);
+            } else {
+                place.lineHeightPx =
+                    std::max(place.metrics.lineHeight, projected);
+            }
+            place.letterSpacingPx = props.letterSpacing * space.pixelsPerWorldX;
+            const BitmapGlyph *spaceGlyph = atlas.ensureGlyph(
+                static_cast<uint32_t>(' '), place.pixelSize);
+            place.spaceAdvancePx =
+                spaceGlyph != nullptr && spaceGlyph->advance > 0.f
+                    ? spaceGlyph->advance
+                    : std::max(projected * 0.25f, 1.f);
+            return place;
         }
 
         constexpr const char *kBitmapTextShader = R"(
@@ -193,9 +234,20 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32,
     return out;
 }
 
+fn text_luminance(color: vec3f) -> f32 {
+    return dot(color, vec3f(0.2126, 0.7152, 0.0722));
+}
+
+fn coverage_alpha(mask: f32, color: vec3f) -> f32 {
+    let coverage = clamp(mask, 0.0, 1.0);
+    let luma = text_luminance(color);
+    let gamma = mix(1.8, 1.4, smoothstep(0.35, 0.65, luma));
+    return pow(coverage, 1.0 / gamma);
+}
+
 fn shade_text(in: VertexOut) -> vec4f {
-    let mask = textureSample(font_atlas, font_sampler, in.uv).r;
-    return vec4f(in.color.rgb, in.color.a * mask);
+    let mask = textureSampleLevel(font_atlas, font_sampler, in.uv, 0.0).r;
+    return vec4f(in.color.rgb, in.color.a * coverage_alpha(mask, in.color.rgb));
 }
 
 @fragment
@@ -332,11 +384,53 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         m_queue = nullptr;
         m_glyphs.clear();
         m_metrics.clear();
+        m_sizeLastUsed.clear();
         m_atlasSize = 0;
         m_currentPixelSize = 0;
         m_cursorX = kAtlasPadding;
         m_cursorY = kAtlasPadding;
         m_rowHeight = 0;
+        m_frame = 1;
+    }
+
+    void BitmapFontAtlas::beginFrame(uint64_t frame) {
+        m_frame = frame == 0 ? 1 : frame;
+        if (!valid()) {
+            return;
+        }
+
+        const uint32_t usedRows = m_cursorY + m_rowHeight;
+        if (usedRows < (m_atlasSize * 3u) / 4u) {
+            return;
+        }
+
+        std::vector<uint64_t> dropKeys;
+        dropKeys.reserve(m_glyphs.size());
+        for (const auto &entry : m_glyphs) {
+            const auto used = m_sizeLastUsed.find(entry.second.pixelSize);
+            if (used == m_sizeLastUsed.end() || used->second + 1u < m_frame) {
+                dropKeys.push_back(entry.first);
+            }
+        }
+        if (dropKeys.empty()) {
+            return;
+        }
+
+        for (const uint64_t key : dropKeys) {
+            m_glyphs.erase(key);
+        }
+
+        std::vector<uint32_t> dropSizes;
+        for (const auto &entry : m_sizeLastUsed) {
+            if (entry.second + 1u < m_frame) {
+                dropSizes.push_back(entry.first);
+            }
+        }
+        for (const uint32_t size : dropSizes) {
+            m_sizeLastUsed.erase(size);
+        }
+
+        repackKeptGlyphs();
     }
 
     bool BitmapFontAtlas::valid() const noexcept {
@@ -383,6 +477,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
         const uint32_t bucket =
             quantizePixelSize(static_cast<float>(pixelSize));
+        m_sizeLastUsed[bucket] = m_frame == 0 ? 1 : m_frame;
         const uint64_t key = glyphKey(codepoint, bucket);
         if (auto it = m_glyphs.find(key); it != m_glyphs.end()) {
             return &it->second;
@@ -396,7 +491,7 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         const FT_UInt glyphIndex =
             FT_Get_Char_Index(face, static_cast<FT_ULong>(codepoint));
         if (glyphIndex == 0) {
-            return nullptr;
+            return cacheEmptyGlyph(key, codepoint, bucket, 0.f);
         }
 
         constexpr FT_Int32 loadFlags = FT_LOAD_DEFAULT | FT_LOAD_TARGET_LIGHT;
@@ -495,13 +590,22 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         }
 
         m_atlasSize = atlasSize;
+        clearPacking();
+        return true;
+    }
+
+    void BitmapFontAtlas::clearPacking() {
         m_cursorX = kAtlasPadding;
         m_cursorY = kAtlasPadding;
         m_rowHeight = 0;
+        m_currentPixelSize = 0;
+        if (m_texture == nullptr || m_queue == nullptr || m_atlasSize == 0) {
+            return;
+        }
 
-        const uint32_t bytesPerRow = ((atlasSize + 255u) / 256u) * 256u;
-        std::vector<uint8_t> zeros(static_cast<size_t>(bytesPerRow) * atlasSize,
-                                   0);
+        const uint32_t bytesPerRow = ((m_atlasSize + 255u) / 256u) * 256u;
+        std::vector<uint8_t> zeros(
+            static_cast<size_t>(bytesPerRow) * m_atlasSize, 0);
         wgpu::TexelCopyTextureInfo destination{};
         destination.texture = m_texture;
         destination.mipLevel = 0;
@@ -511,12 +615,32 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         wgpu::TexelCopyBufferLayout layout{};
         layout.offset = 0;
         layout.bytesPerRow = bytesPerRow;
-        layout.rowsPerImage = atlasSize;
+        layout.rowsPerImage = m_atlasSize;
 
-        wgpu::Extent3D writeSize{atlasSize, atlasSize, 1};
+        wgpu::Extent3D writeSize{m_atlasSize, m_atlasSize, 1};
         m_queue.WriteTexture(
             &destination, zeros.data(), zeros.size(), &layout, &writeSize);
-        return true;
+    }
+
+    void BitmapFontAtlas::repackKeptGlyphs() {
+        struct KeptGlyph {
+            uint32_t codepoint = 0;
+            uint32_t pixelSize = 0;
+        };
+
+        std::vector<KeptGlyph> keep;
+        keep.reserve(m_glyphs.size());
+        for (const auto &entry : m_glyphs) {
+            keep.push_back(
+                {.codepoint = entry.second.codepoint,
+                 .pixelSize = entry.second.pixelSize});
+        }
+
+        m_glyphs.clear();
+        clearPacking();
+        for (const KeptGlyph &glyph : keep) {
+            static_cast<void>(ensureGlyph(glyph.codepoint, glyph.pixelSize));
+        }
     }
 
     bool BitmapFontAtlas::selectPixelSize(uint32_t pixelSize) {
@@ -910,37 +1034,31 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
         return true;
     }
 
-    bool appendBitmapText(std::string_view text,
-                          const Core::Renderer::FontProps &props,
-                          float projectedPixelSize,
-                          BitmapFontAtlas &atlas,
-                          BitmapTextBatch &batch,
-                          uint64_t submitOrder,
-                          Core::Renderer::RendererScissorState scissor) {
+    bool appendBitmapText(
+        std::string_view text,
+        const Core::Renderer::FontProps &props,
+        const TextPixelSpace &pixelSpace,
+        BitmapFontAtlas &atlas,
+        BitmapTextBatch &batch,
+        uint64_t submitOrder,
+        Core::Renderer::RendererScissorState scissor,
+        const Core::Renderer::MsdfFontAtlas<WgpuTexture> *msdfAtlas,
+        MsdfTextBatch *msdfBatch) {
+        const float projected = pixelSpace.projectedPixelSize(props.fontSize);
         if (props.fontSize <= 0.f ||
-            !ensureBitmapTextGlyphs(text, projectedPixelSize, atlas)) {
+            !ensureBitmapTextGlyphs(text, projected, atlas)) {
             return false;
         }
 
-        const uint32_t pixelSize = atlas.quantizePixelSize(projectedPixelSize);
-        const float scale = props.fontSize / static_cast<float>(pixelSize);
-        const float lineStartX = props.position.x;
-        const BitmapTextLineMetrics metrics = atlas.metricsForSize(pixelSize);
-        const float lineHeight =
-            props.lineHeight > 0.f
-                ? props.lineHeight
-                : std::max(metrics.lineHeight * scale, props.fontSize);
-
-        const BitmapGlyph *spaceGlyph = atlas.ensureGlyph(' ', pixelSize);
-        const float spaceAdvance =
-            spaceGlyph != nullptr && spaceGlyph->advance > 0.f
-                ? spaceGlyph->advance * scale
-                : props.fontSize * 0.25f;
-
-        glm::vec2 baseline{props.position.x, props.position.y};
+        const BitmapPlacement place =
+            makeBitmapPlacement(props, pixelSpace, atlas);
+        const glm::vec2 originPx =
+            glm::round(pixelSpace.worldToPixel(props.position));
+        const float lineStartX = originPx.x;
+        glm::vec2 pen = originPx;
         auto advanceLine = [&]() {
-            baseline.x = lineStartX;
-            baseline.y += lineHeight;
+            pen.x = lineStartX;
+            pen.y += place.lineHeightPx;
         };
 
         size_t offset = 0;
@@ -962,88 +1080,99 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 continue;
             }
             if (codepoint == '\t') {
-                baseline.x += (spaceAdvance * std::max(props.tabSize, 1.f)) +
-                              props.letterSpacing;
+                pen.x += (place.spaceAdvancePx * std::max(props.tabSize, 1.f)) +
+                         place.letterSpacingPx;
                 continue;
             }
 
-            const BitmapGlyph *glyph = atlas.ensureGlyph(codepoint, pixelSize);
+            const BitmapGlyph *glyph =
+                atlas.ensureGlyph(codepoint, place.pixelSize);
             if (glyph == nullptr) {
                 return false;
             }
 
-            if (glyph->drawable) {
-                const float left = baseline.x + (glyph->offsetX * scale);
-                const float top = baseline.y - (glyph->offsetY * scale);
-                const glm::vec2 size{
-                    std::max(0.f, glyph->width * scale),
-                    std::max(0.f, glyph->height * scale),
-                };
-
-                if (size.x > 0.f && size.y > 0.f) {
-                    BitmapTextInstance instance;
-                    instance.position[0] = left + (size.x * 0.5f);
-                    instance.position[1] = top + (size.y * 0.5f);
-                    instance.position[2] = props.zIndex;
-                    instance.size[0] = size.x;
-                    instance.size[1] = size.y;
-                    instance.rotation = 0.f;
-                    instance.color[0] = props.color.r;
-                    instance.color[1] = props.color.g;
-                    instance.color[2] = props.color.b;
-                    instance.color[3] = props.color.a;
-                    instance.uvRect[0] = glyph->uvRect.x;
-                    instance.uvRect[1] = glyph->uvRect.y;
-                    instance.uvRect[2] = glyph->uvRect.z;
-                    instance.uvRect[3] = glyph->uvRect.w;
-                    instance.id[0] = props.id.runtimeId;
-                    instance.id[1] = props.id.info;
-                    instance.flags[0] =
-                        props.transformMode ==
-                                Core::Renderer::RenderTransformMode::Camera
-                            ? kBitmapTextFlagApplyCameraTransform
-                            : 0u;
-                    batch.push(instance, submitOrder, scissor);
+            if (!glyph->drawable && glyph->advance <= 0.f &&
+                msdfAtlas != nullptr) {
+                const MsdfPlacedGlyph placed = placeMsdfCodepoint(
+                    codepoint,
+                    pixelSpace.pixelToWorld(pen),
+                    props,
+                    *msdfAtlas,
+                    msdfBatch,
+                    submitOrder,
+                    scissor);
+                if (placed.found) {
+                    pen.x += placed.advance *
+                             std::max(pixelSpace.pixelsPerWorldX, 0.0001f);
+                    pen.x += place.letterSpacingPx;
+                    continue;
                 }
             }
 
-            const float advance = glyph->advance > 0.f ? glyph->advance * scale
-                                                       : props.fontSize * 0.5f;
-            baseline.x += advance + props.letterSpacing;
+            if (glyph->drawable && glyph->width > 0.f && glyph->height > 0.f) {
+                const float left = std::round(pen.x + glyph->offsetX);
+                const float top = std::round(pen.y - glyph->offsetY);
+                const glm::vec2 centerPx{left + (glyph->width * 0.5f),
+                                         top + (glyph->height * 0.5f)};
+                const glm::vec2 center = pixelSpace.pixelToWorld(centerPx);
+
+                BitmapTextInstance instance;
+                instance.position[0] = center.x;
+                instance.position[1] = center.y;
+                instance.position[2] = props.zIndex;
+                instance.size[0] = glyph->width * place.worldPerPixelX;
+                instance.size[1] = glyph->height * place.worldPerPixelY;
+                instance.rotation = 0.f;
+                instance.color[0] = props.color.r;
+                instance.color[1] = props.color.g;
+                instance.color[2] = props.color.b;
+                instance.color[3] = props.color.a;
+                instance.uvRect[0] = glyph->uvRect.x;
+                instance.uvRect[1] = glyph->uvRect.y;
+                instance.uvRect[2] = glyph->uvRect.z;
+                instance.uvRect[3] = glyph->uvRect.w;
+                instance.id[0] = props.id.runtimeId;
+                instance.id[1] = props.id.info;
+                instance.flags[0] =
+                    props.transformMode ==
+                            Core::Renderer::RenderTransformMode::Camera
+                        ? kBitmapTextFlagApplyCameraTransform
+                        : 0u;
+                batch.push(instance, submitOrder, scissor);
+            }
+
+            const float advancePx =
+                glyph->advance > 0.f
+                    ? glyph->advance
+                    : (glyph->drawable ? std::max(projected * 0.5f, 1.f)
+                                       : 0.f);
+            pen.x += advancePx + place.letterSpacingPx;
         }
 
         return true;
     }
 
-    glm::vec2 measureBitmapText(std::string_view text,
-                                const Core::Renderer::FontProps &props,
-                                float projectedPixelSize,
-                                BitmapFontAtlas &atlas) {
+    glm::vec2 measureBitmapText(
+        std::string_view text,
+        const Core::Renderer::FontProps &props,
+        const TextPixelSpace &pixelSpace,
+        BitmapFontAtlas &atlas,
+        const Core::Renderer::MsdfFontAtlas<WgpuTexture> *msdfAtlas) {
+        const float projected = pixelSpace.projectedPixelSize(props.fontSize);
         if (!atlas.valid() || text.empty() || props.fontSize <= 0.f ||
-            !ensureBitmapTextGlyphs(text, projectedPixelSize, atlas)) {
+            !ensureBitmapTextGlyphs(text, projected, atlas)) {
             return {0.f, 0.f};
         }
 
-        const uint32_t pixelSize = atlas.quantizePixelSize(projectedPixelSize);
-        const float scale = props.fontSize / static_cast<float>(pixelSize);
-        const BitmapGlyph *spaceGlyph = atlas.ensureGlyph(' ', pixelSize);
-        const float spaceAdvance =
-            spaceGlyph != nullptr && spaceGlyph->advance > 0.f
-                ? spaceGlyph->advance * scale
-                : props.fontSize * 0.25f;
-
-        const BitmapTextLineMetrics metrics = atlas.metricsForSize(pixelSize);
-        const float lineHeight =
-            props.lineHeight > 0.f
-                ? props.lineHeight
-                : std::max(metrics.lineHeight * scale, props.fontSize);
+        const BitmapPlacement place =
+            makeBitmapPlacement(props, pixelSpace, atlas);
 
         float lineAdvance = 0.f;
         float lineInkMin = 0.f;
         float lineInkMax = 0.f;
         bool hasLineInk = false;
         float maxWidth = 0.f;
-        float totalHeight = std::max(lineHeight, props.fontSize);
+        float totalHeight = place.lineHeightPx;
 
         auto finishLine = [&]() {
             float lineWidth = lineAdvance;
@@ -1071,28 +1200,53 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                     ++offset;
                 }
                 finishLine();
-                totalHeight += lineHeight;
+                totalHeight += place.lineHeightPx;
                 continue;
             }
             if (codepoint == '\n') {
                 finishLine();
-                totalHeight += lineHeight;
+                totalHeight += place.lineHeightPx;
                 continue;
             }
             if (codepoint == '\t') {
-                lineAdvance += (spaceAdvance * std::max(props.tabSize, 1.f)) +
-                               props.letterSpacing;
+                lineAdvance +=
+                    (place.spaceAdvancePx * std::max(props.tabSize, 1.f)) +
+                    place.letterSpacingPx;
                 continue;
             }
 
-            const BitmapGlyph *glyph = atlas.ensureGlyph(codepoint, pixelSize);
+            const BitmapGlyph *glyph =
+                atlas.ensureGlyph(codepoint, place.pixelSize);
             if (glyph == nullptr) {
                 continue;
             }
 
+            if (!glyph->drawable && glyph->advance <= 0.f &&
+                msdfAtlas != nullptr) {
+                const MsdfPlacedGlyph placed = placeMsdfCodepoint(
+                    codepoint, glm::vec2{0.f}, props, *msdfAtlas, nullptr);
+                if (placed.found) {
+                    const float scale =
+                        std::max(pixelSpace.pixelsPerWorldX, 0.0001f);
+                    const float glyphLeft = lineAdvance + (placed.inkLeft * scale);
+                    const float glyphRight =
+                        lineAdvance + (placed.inkRight * scale);
+                    if (hasLineInk) {
+                        lineInkMin = std::min(lineInkMin, glyphLeft);
+                        lineInkMax = std::max(lineInkMax, glyphRight);
+                    } else {
+                        lineInkMin = glyphLeft;
+                        lineInkMax = glyphRight;
+                        hasLineInk = true;
+                    }
+                    lineAdvance += (placed.advance * scale) + place.letterSpacingPx;
+                    continue;
+                }
+            }
+
             if (glyph->drawable) {
-                const float glyphLeft = lineAdvance + (glyph->offsetX * scale);
-                const float glyphRight = glyphLeft + (glyph->width * scale);
+                const float glyphLeft = lineAdvance + glyph->offsetX;
+                const float glyphRight = glyphLeft + glyph->width;
                 if (hasLineInk) {
                     lineInkMin = std::min(lineInkMin, glyphLeft);
                     lineInkMax = std::max(lineInkMax, glyphRight);
@@ -1103,36 +1257,36 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
                 }
             }
 
-            const float advance = glyph->advance > 0.f ? glyph->advance * scale
-                                                       : props.fontSize * 0.5f;
-            lineAdvance += advance + props.letterSpacing;
+            const float advancePx =
+                glyph->advance > 0.f
+                    ? glyph->advance
+                    : (glyph->drawable ? std::max(projected * 0.5f, 1.f)
+                                       : 0.f);
+            lineAdvance += advancePx + place.letterSpacingPx;
         }
 
         finishLine();
-        return {maxWidth, totalHeight};
+        return {maxWidth * place.worldPerPixelX,
+                totalHeight * place.worldPerPixelY};
     }
 
     float bitmapCenterOffsetY(std::string_view text,
                               const Core::Renderer::FontProps &props,
+                              const TextPixelSpace &pixelSpace,
                               BitmapFontAtlas &atlas) {
         if (!atlas.valid() || text.empty() || props.fontSize <= 0.f) {
             return 0.f;
         }
 
-        const uint32_t pixelSize = atlas.quantizePixelSize(props.fontSize);
-        const float scale = props.fontSize / static_cast<float>(pixelSize);
+        const float projected = pixelSpace.projectedPixelSize(props.fontSize);
+        if (!ensureBitmapTextGlyphs(text, projected, atlas)) {
+            return 0.f;
+        }
 
-        const BitmapTextLineMetrics metrics = atlas.metricsForSize(pixelSize);
-
-        const float ascent = metrics.ascender * scale;
-        const float descent = metrics.descender * scale;
-
-        const float lineHeight =
-            props.lineHeight > 0.f
-                ? props.lineHeight
-                : std::max(metrics.lineHeight * scale, props.fontSize);
-
-        return 0.5f * (ascent + descent);
+        const BitmapPlacement place =
+            makeBitmapPlacement(props, pixelSpace, atlas);
+        return 0.5f * (place.metrics.ascender + place.metrics.descender) *
+               place.worldPerPixelY;
     }
 
 } // namespace Bess::Wgpu::Text

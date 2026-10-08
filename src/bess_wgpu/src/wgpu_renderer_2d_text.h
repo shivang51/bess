@@ -104,9 +104,14 @@ namespace Bess::Wgpu::Renderer2DDetail {
         return transformed;
     }
 
-    inline glm::vec2 measurePathText(std::string_view text,
-                                     const Core::Renderer::FontProps &props,
-                                     Core::Renderer::FontFile &font) {
+    inline glm::vec2
+    measurePathText(std::string_view text,
+                    const Core::Renderer::FontProps &props,
+                    Core::Renderer::FontFile &font,
+                    float (*missingAdvance)(uint32_t codepoint,
+                                            float fontSize,
+                                            void *user) = nullptr,
+                    void *missingUser = nullptr) {
         if (text.empty() || props.fontSize <= 0.f || font.getSize() <= 0.f) {
             return {0.f, 0.f};
         }
@@ -155,6 +160,15 @@ namespace Bess::Wgpu::Renderer2DDetail {
 
             const Core::Renderer::Glyph &glyph =
                 font.getGlyph(static_cast<char32_t>(codepoint));
+            if (glyph.advanceX <= 0.f && glyph.width <= 0.f &&
+                glyph.path.empty() && missingAdvance != nullptr) {
+                const float iconAdvance =
+                    missingAdvance(codepoint, props.fontSize, missingUser);
+                if (iconAdvance >= 0.f) {
+                    lineAdvance += iconAdvance + props.letterSpacing;
+                    continue;
+                }
+            }
             const float advance =
                 glyph.advanceX > 0.f
                     ? glyph.advanceX * scale

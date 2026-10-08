@@ -215,6 +215,23 @@ namespace Bess::Wgpu {
             std::unique_ptr<WgpuShader> m_shader;
         };
 
+        struct BESS_API MsdfPlacedGlyph {
+            bool found = false;
+            float advance = 0.f;
+            float inkLeft = 0.f;
+            float inkRight = 0.f;
+        };
+
+        template <typename TAtlas>
+        MsdfPlacedGlyph
+        placeMsdfCodepoint(uint32_t codepoint,
+                           glm::vec2 baseline,
+                           const Core::Renderer::FontProps &props,
+                           const TAtlas &atlas,
+                           MsdfTextBatch *batch = nullptr,
+                           uint64_t submitOrder = 0,
+                           Core::Renderer::RendererScissorState scissor = {});
+
         template <typename TAtlas>
         bool appendMsdfText(std::string_view text,
                             const Core::Renderer::FontProps &props,

@@ -73,9 +73,9 @@ namespace Bess::Wgpu {
         constexpr const char *kDefaultMsdfFontDirectory = "assets/bess_fonts";
         constexpr const char *kDefaultMsdfFontName = "bess_fonts_merged";
         constexpr float kFontOutlinePixelSize = 64.f;
-        constexpr float kBitmapTextMinProjectedPixelSize = 4.f;
-        constexpr float kBitmapTextMaxProjectedPixelSize = 24.f;
-        constexpr uint32_t kBitmapTextAtlasSize = 2048;
+        constexpr float kBitmapTextMinProjectedPixelSize = 1.f;
+        constexpr float kBitmapTextMaxProjectedPixelSize = 64.f;
+        constexpr uint32_t kBitmapTextAtlasSize = 4096;
         constexpr float kPathRotationEpsilon = 0.0001f;
         constexpr uint64_t kPathCacheMaxIdleFrames = 240;
         constexpr std::size_t kPathCachePruneThreshold = 512;
@@ -139,22 +139,58 @@ namespace Bess::Wgpu {
                 props.transformMode, cameraTransform, extent);
         }
 
-        float projectedFontPixelSize(const FontProps &props,
-                                     const float *cameraTransform,
-                                     const Renderer2DExtent &extent) {
-            if (props.transformMode ==
-                Core::Renderer::RenderTransformMode::Screen) {
-                return props.fontSize;
+        Text::TextPixelSpace
+        makeTextPixelSpace(Core::Renderer::RenderTransformMode transformMode,
+                           const float *cameraTransform,
+                           const Renderer2DExtent &extent) {
+            Text::TextPixelSpace space;
+            space.viewportW = std::max(1.f, static_cast<float>(extent.width));
+            space.viewportH = std::max(1.f, static_cast<float>(extent.height));
+            const bool useCamera =
+                transformMode == Core::Renderer::RenderTransformMode::Camera &&
+                cameraTransform != nullptr && extent.width > 0 &&
+                extent.height > 0;
+            if (!useCamera) {
+                return space;
             }
 
-            const PathBakeMetrics metrics =
-                makePathBakeMetrics(cameraTransform, extent);
-            return props.fontSize * std::max(metrics.screenScale, 0.0001f);
+            space.camera = true;
+            space.m00 = cameraTransform[0];
+            space.m01 = cameraTransform[1];
+            space.m10 = cameraTransform[4];
+            space.m11 = cameraTransform[5];
+            space.m30 = cameraTransform[12];
+            space.m31 = cameraTransform[13];
+
+            const float xScale = std::abs(space.m00) * space.viewportW * 0.5f;
+            const float yScale = std::abs(space.m11) * space.viewportH * 0.5f;
+            const float shearX = std::abs(space.m01) * space.viewportH * 0.5f;
+            const float shearY = std::abs(space.m10) * space.viewportW * 0.5f;
+            const float dominant = std::max({xScale, yScale, 0.0001f});
+            space.axisAligned =
+                shearX <= dominant * 0.001f && shearY <= dominant * 0.001f;
+            space.pixelsPerWorldX = std::max(xScale, 0.0001f);
+            space.pixelsPerWorldY = std::max(yScale, 0.0001f);
+            if (!space.axisAligned) {
+                const glm::vec2 xAxis(space.m00 * space.viewportW * 0.5f,
+                                      -space.m01 * space.viewportH * 0.5f);
+                const glm::vec2 yAxis(space.m10 * space.viewportW * 0.5f,
+                                      -space.m11 * space.viewportH * 0.5f);
+                space.pixelsPerWorldX = std::max(glm::length(xAxis), 0.0001f);
+                space.pixelsPerWorldY = std::max(glm::length(yAxis), 0.0001f);
+            }
+            return space;
         }
 
-        bool shouldUseBitmapText(float projectedPixelSize) noexcept {
-            return projectedPixelSize >= kBitmapTextMinProjectedPixelSize &&
+        bool shouldUseBitmapText(float projectedPixelSize,
+                                 bool axisAligned) noexcept {
+            return axisAligned &&
+                   projectedPixelSize >= kBitmapTextMinProjectedPixelSize &&
                    projectedPixelSize <= kBitmapTextMaxProjectedPixelSize;
+        }
+
+        bool shouldUseOutlineText(float projectedPixelSize) noexcept {
+            return projectedPixelSize > kBitmapTextMaxProjectedPixelSize;
         }
 
         RendererScissorRect
@@ -1285,6 +1321,9 @@ namespace Bess::Wgpu {
         ++m_impl->frameSequence;
         if (m_impl->frameSequence == 0) {
             m_impl->frameSequence = 1;
+        }
+        if (m_impl->bitmapFontAtlas != nullptr) {
+            m_impl->bitmapFontAtlas->beginFrame(m_impl->frameSequence);
         }
         m_impl->nextDrawSubmitOrder = 1;
         m_impl->prunePathCache();
@@ -2599,19 +2638,182 @@ namespace Bess::Wgpu {
             return;
         }
         const uint64_t submitOrder = m_impl->nextSubmitOrder();
-        const float projectedPixelSize = projectedFontPixelSize(
-            props, m_impl->cameraTransform, m_impl->extent);
+        const Text::TextPixelSpace pixelSpace = makeTextPixelSpace(
+            props.transformMode, m_impl->cameraTransform, m_impl->extent);
+        const float projectedPixelSize =
+            pixelSpace.projectedPixelSize(props.fontSize);
+
+        auto drawOutlineText = [&]() -> bool {
+            if (m_impl->fontFile == nullptr) {
+                return false;
+            }
+
+            const float fontBaseSize = m_impl->fontFile->getSize();
+            if (fontBaseSize <= 0.f) {
+                return false;
+            }
+
+            const float scale = props.fontSize / fontBaseSize;
+            const float defaultLineHeight =
+                m_impl->fontFile->lineHeight() * scale;
+            const float lineHeight =
+                props.lineHeight > 0.f
+                    ? props.lineHeight
+                    : (0.f < defaultLineHeight ? defaultLineHeight
+                                               : props.fontSize);
+
+            const Glyph &spaceGlyph = m_impl->fontFile->getGlyph(U' ');
+            const float spaceAdvance =
+                std::max(spaceGlyph.advanceX * scale, props.fontSize * 0.25f);
+
+            const PathBakeMetrics metrics = makePathBakeMetricsForTransform(
+                props.transformMode, m_impl->cameraTransform, m_impl->extent);
+
+            const float lineStartX = props.position.x;
+            glm::vec2 cursor{props.position.x, props.position.y};
+            bool hasTextPathProps = false;
+            PathProps textPathProps{};
+            m_impl->textPathCommandsScratch.clear();
+            m_impl->textPathCommandsScratch.reserve(text.size() * 16u);
+
+            auto flushTextPath = [&]() {
+                if (!hasTextPathProps ||
+                    m_impl->textPathCommandsScratch.empty()) {
+                    return;
+                }
+
+                PathProps pathProps = textPathProps;
+                pathProps.fillColor = props.color;
+                pathProps.strokeColor.a = 0.f;
+                pathProps.strokeSize = 0.f;
+                pathProps.renderFill = true;
+                pathProps.zIndex = props.zIndex;
+                pathProps.id = props.id;
+                pathProps.renderPass =
+                    props.renderPass ==
+                            Core::Renderer::QuadRenderPass::Opaque
+                        ? Core::Renderer::QuadRenderPass::Opaque
+                        : Core::Renderer::QuadRenderPass::Transparent;
+                pathProps.transformMode = props.transformMode;
+                const std::span<const PathCommand> textCommands{
+                    m_impl->textPathCommandsScratch.data(),
+                    m_impl->textPathCommandsScratch.size()};
+                submitPathCommands(textCommands,
+                                   pathProps,
+                                   metrics,
+                                   submitOrder,
+                                   m_impl->opaquePathBatch,
+                                   m_impl->transparentPathBatch,
+                                   m_impl->opaquePathStrokeBatch,
+                                   m_impl->transparentPathStrokeBatch,
+                                   scissor);
+
+                if (props.antiAlias) {
+                    m_impl->transparentPathStrokeBatch.push(
+                        bakePathFillAntiAlias(textCommands,
+                                              pathProps,
+                                              metrics,
+                                              props.antiAliasFringeScale),
+                        pathProps,
+                        submitOrder,
+                        scissor);
+                }
+
+                m_impl->textPathCommandsScratch.clear();
+                hasTextPathProps = false;
+            };
+
+            size_t offset = 0;
+            while (offset < text.size()) {
+                const uint32_t codepoint = decodeUtf8(text, offset);
+                if (codepoint == 0) {
+                    break;
+                }
+
+                if (codepoint == '\r') {
+                    flushTextPath();
+                    if (offset < text.size() && text[offset] == '\n') {
+                        ++offset;
+                    }
+                    cursor.x = lineStartX;
+                    cursor.y += lineHeight;
+                    continue;
+                }
+
+                if (codepoint == '\n') {
+                    flushTextPath();
+                    cursor.x = lineStartX;
+                    cursor.y += lineHeight;
+                    continue;
+                }
+
+                if (codepoint == '\t') {
+                    cursor.x += (spaceAdvance * std::max(props.tabSize, 1.f)) +
+                                props.letterSpacing;
+                    continue;
+                }
+
+                const Glyph &glyph = m_impl->fontFile->getGlyph(
+                    static_cast<char32_t>(codepoint));
+                if (glyph.path.empty() && glyph.advanceX <= 0.f &&
+                    m_impl->msdfFontAtlas != nullptr) {
+                    const Text::MsdfPlacedGlyph placed =
+                        Text::placeMsdfCodepoint(codepoint,
+                                                 cursor,
+                                                 props,
+                                                 *m_impl->msdfFontAtlas,
+                                                 &m_impl->textBatch,
+                                                 submitOrder,
+                                                 scissor);
+                    if (placed.found) {
+                        cursor.x += placed.advance + props.letterSpacing;
+                        continue;
+                    }
+                }
+                if (!glyph.path.empty()) {
+                    if (hasTextPathProps &&
+                        (textPathProps.fillRule != glyph.pathProps.fillRule ||
+                         textPathProps.curveTolerance !=
+                             glyph.pathProps.curveTolerance)) {
+                        flushTextPath();
+                    }
+                    if (!hasTextPathProps) {
+                        textPathProps = glyph.pathProps;
+                        hasTextPathProps = true;
+                    }
+                    for (const PathCommand &command : glyph.path.commands()) {
+                        m_impl->textPathCommandsScratch.push_back(
+                            transformTextCommand(command, cursor, scale));
+                    }
+                }
+
+                const float advance =
+                    glyph.advanceX > 0.f
+                        ? glyph.advanceX * scale
+                        : std::max(glyph.width * scale, props.fontSize * 0.5f);
+                cursor.x += advance + props.letterSpacing;
+            }
+            flushTextPath();
+            return true;
+        };
+
         if (m_impl->bitmapTextPipeline != nullptr &&
             m_impl->bitmapFontAtlas != nullptr &&
-            shouldUseBitmapText(projectedPixelSize) &&
+            shouldUseBitmapText(projectedPixelSize, pixelSpace.axisAligned) &&
             Text::appendBitmapText(text,
                                    props,
-                                   projectedPixelSize,
+                                   pixelSpace,
                                    *m_impl->bitmapFontAtlas,
                                    m_impl->bitmapTextBatch,
                                    submitOrder,
-                                   scissor)) {
+                                   scissor,
+                                   m_impl->msdfFontAtlas.get(),
+                                   &m_impl->textBatch)) {
             m_impl->stats.quadCount = m_impl->quadStatsCount();
+            return;
+        }
+
+        if (shouldUseOutlineText(projectedPixelSize) && drawOutlineText()) {
             return;
         }
 
@@ -2627,135 +2829,21 @@ namespace Bess::Wgpu {
             return;
         }
 
-        if (m_impl->fontFile == nullptr) {
-            return;
+        drawOutlineText();
+    }
+
+    static float msdfIconAdvance(uint32_t codepoint, float fontSize, void *user) {
+        auto *atlas = static_cast<MsdfFontAtlas *>(user);
+        if (atlas == nullptr || fontSize <= 0.f) {
+            return -1.f;
         }
-
-        const float fontBaseSize = m_impl->fontFile->getSize();
-        if (fontBaseSize <= 0.f) {
-            return;
-        }
-
-        const float scale = props.fontSize / fontBaseSize;
-        const float defaultLineHeight = m_impl->fontFile->lineHeight() * scale;
-        const float lineHeight =
-            props.lineHeight > 0.f
-                ? props.lineHeight
-                : (0.f < defaultLineHeight ? defaultLineHeight
-                                           : props.fontSize);
-
-        const Glyph &spaceGlyph = m_impl->fontFile->getGlyph(U' ');
-        const float spaceAdvance =
-            std::max(spaceGlyph.advanceX * scale, props.fontSize * 0.25f);
-
-        const PathBakeMetrics metrics = makePathBakeMetricsForTransform(
-            props.transformMode, m_impl->cameraTransform, m_impl->extent);
-
-        const float lineStartX = props.position.x;
-        glm::vec2 cursor{props.position.x, props.position.y};
-        bool hasTextPathProps = false;
-        PathProps textPathProps{};
-        m_impl->textPathCommandsScratch.clear();
-        m_impl->textPathCommandsScratch.reserve(text.size() * 16u);
-
-        auto flushTextPath = [&]() {
-            if (!hasTextPathProps || m_impl->textPathCommandsScratch.empty()) {
-                return;
-            }
-
-            PathProps pathProps = textPathProps;
-            pathProps.fillColor = props.color;
-            pathProps.strokeColor.a = 0.f;
-            pathProps.strokeSize = 0.f;
-            pathProps.renderFill = true;
-            pathProps.zIndex = props.zIndex;
-            pathProps.id = props.id;
-            pathProps.renderPass = props.renderPass;
-            pathProps.transformMode = props.transformMode;
-            const std::span<const PathCommand> textCommands{
-                m_impl->textPathCommandsScratch.data(),
-                m_impl->textPathCommandsScratch.size()};
-            submitPathCommands(textCommands,
-                               pathProps,
-                               metrics,
-                               submitOrder,
-                               m_impl->opaquePathBatch,
-                               m_impl->transparentPathBatch,
-                               m_impl->opaquePathStrokeBatch,
-                               m_impl->transparentPathStrokeBatch,
-                               scissor);
-
-            if (props.antiAlias) {
-                m_impl->transparentPathStrokeBatch.push(
-                    bakePathFillAntiAlias(textCommands,
-                                          pathProps,
-                                          metrics,
-                                          props.antiAliasFringeScale),
-                    pathProps,
-                    submitOrder,
-                    scissor);
-            }
-
-            m_impl->textPathCommandsScratch.clear();
-            hasTextPathProps = false;
-        };
-
-        size_t offset = 0;
-        while (offset < text.size()) {
-            const uint32_t codepoint = decodeUtf8(text, offset);
-            if (codepoint == 0) {
-                break;
-            }
-
-            if (codepoint == '\r') {
-                flushTextPath();
-                if (offset < text.size() && text[offset] == '\n') {
-                    ++offset;
-                }
-                cursor.x = lineStartX;
-                cursor.y += lineHeight;
-                continue;
-            }
-
-            if (codepoint == '\n') {
-                flushTextPath();
-                cursor.x = lineStartX;
-                cursor.y += lineHeight;
-                continue;
-            }
-
-            if (codepoint == '\t') {
-                cursor.x += (spaceAdvance * std::max(props.tabSize, 1.f)) +
-                            props.letterSpacing;
-                continue;
-            }
-
-            const Glyph &glyph =
-                m_impl->fontFile->getGlyph(static_cast<char32_t>(codepoint));
-            if (!glyph.path.empty()) {
-                if (hasTextPathProps &&
-                    (textPathProps.fillRule != glyph.pathProps.fillRule ||
-                     textPathProps.curveTolerance !=
-                         glyph.pathProps.curveTolerance)) {
-                    flushTextPath();
-                }
-                if (!hasTextPathProps) {
-                    textPathProps = glyph.pathProps;
-                    hasTextPathProps = true;
-                }
-                for (const PathCommand &command : glyph.path.commands()) {
-                    m_impl->textPathCommandsScratch.push_back(
-                        transformTextCommand(command, cursor, scale));
-                }
-            }
-
-            const float advance =
-                glyph.advanceX > 0.f
-                    ? glyph.advanceX * scale
-                    : std::max(glyph.width * scale, props.fontSize * 0.5f);
-            cursor.x += advance + props.letterSpacing;
-        }
-        flushTextPath();
+        const Text::MsdfPlacedGlyph placed = Text::placeMsdfCodepoint(
+            codepoint,
+            glm::vec2{0.f},
+            FontProps{.fontSize = fontSize},
+            *atlas,
+            nullptr);
+        return placed.found ? placed.advance : -1.f;
     }
 
     glm::vec2 WgpuRenderer2D::measureText(std::string_view text,
@@ -2764,19 +2852,34 @@ namespace Bess::Wgpu {
             return {0.f, 0.f};
         }
 
-        const float projectedPixelSize = projectedFontPixelSize(
-            props, m_impl->cameraTransform, m_impl->extent);
+        const Text::TextPixelSpace pixelSpace = makeTextPixelSpace(
+            props.transformMode, m_impl->cameraTransform, m_impl->extent);
+        const float projectedPixelSize =
+            pixelSpace.projectedPixelSize(props.fontSize);
 
         if (m_impl->bitmapFontAtlas != nullptr &&
             m_impl->bitmapFontAtlas->valid() &&
-            shouldUseBitmapText(projectedPixelSize) &&
+            shouldUseBitmapText(projectedPixelSize, pixelSpace.axisAligned) &&
             Text::ensureBitmapTextGlyphs(
                 text, projectedPixelSize, *m_impl->bitmapFontAtlas)) {
             const glm::vec2 measured = Text::measureBitmapText(
-                text, props, projectedPixelSize, *m_impl->bitmapFontAtlas);
+                text,
+                props,
+                pixelSpace,
+                *m_impl->bitmapFontAtlas,
+                m_impl->msdfFontAtlas.get());
             if (measured.x > 0.f || measured.y > 0.f) {
                 return measured;
             }
+        }
+
+        if (shouldUseOutlineText(projectedPixelSize) &&
+            m_impl->fontFile != nullptr) {
+            return measurePathText(text,
+                                   props,
+                                   *m_impl->fontFile,
+                                   msdfIconAdvance,
+                                   m_impl->msdfFontAtlas.get());
         }
 
         if (m_impl->msdfFontAtlas != nullptr &&
@@ -2785,7 +2888,11 @@ namespace Bess::Wgpu {
         }
 
         if (m_impl->fontFile != nullptr) {
-            return measurePathText(text, props, *m_impl->fontFile);
+            return measurePathText(text,
+                                   props,
+                                   *m_impl->fontFile,
+                                   msdfIconAdvance,
+                                   m_impl->msdfFontAtlas.get());
         }
 
         const float safeFontSize = std::max(props.fontSize, 1.f);
@@ -2812,13 +2919,23 @@ namespace Bess::Wgpu {
             return 0.f;
         }
 
+        const Text::TextPixelSpace pixelSpace = makeTextPixelSpace(
+            props.transformMode, m_impl->cameraTransform, m_impl->extent);
+        const float projectedPixelSize =
+            pixelSpace.projectedPixelSize(props.fontSize);
+
         if (m_impl->bitmapFontAtlas != nullptr &&
             m_impl->bitmapFontAtlas->valid() &&
-            shouldUseBitmapText(props.fontSize) &&
+            shouldUseBitmapText(projectedPixelSize, pixelSpace.axisAligned) &&
             Text::ensureBitmapTextGlyphs(
-                text, props.fontSize, *m_impl->bitmapFontAtlas)) {
+                text, projectedPixelSize, *m_impl->bitmapFontAtlas)) {
             return Text::bitmapCenterOffsetY(
-                text, props, *m_impl->bitmapFontAtlas);
+                text, props, pixelSpace, *m_impl->bitmapFontAtlas);
+        }
+
+        if (shouldUseOutlineText(projectedPixelSize) &&
+            m_impl->fontFile != nullptr) {
+            return pathCenterOffsetY(text, props, *m_impl->fontFile);
         }
 
         if (m_impl->msdfFontAtlas != nullptr &&

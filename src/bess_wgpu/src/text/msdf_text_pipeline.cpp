@@ -207,7 +207,7 @@ fn perceptual_coverage_gamma(coverage: f32, px_range: f32, color: vec3f) -> f32 
 }
 
 fn shade_text(in: VertexOut) -> vec4f {
-    let tex = textureSample(font_atlas, font_sampler, in.uv);
+    let tex = textureSampleLevel(font_atlas, font_sampler, in.uv, 0.0);
     let msdf_distance = median3(tex.rgb) - 0.5;
     let sdf_distance = tex.a - 0.5;
     let px_range = screen_px_range(in.uv, in.px_range);
@@ -486,6 +486,76 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
     }
 
     template <typename TAtlas>
+    MsdfPlacedGlyph
+    placeMsdfCodepoint(uint32_t codepoint,
+                       glm::vec2 baseline,
+                       const Core::Renderer::FontProps &props,
+                       const TAtlas &atlas,
+                       MsdfTextBatch *batch,
+                       uint64_t submitOrder,
+                       Core::Renderer::RendererScissorState scissor) {
+        MsdfPlacedGlyph placed;
+        if (!atlas.valid() || props.fontSize <= 0.f) {
+            return placed;
+        }
+
+        const Core::Renderer::MsdfGlyph *glyph = atlas.findGlyph(codepoint);
+        if (glyph == nullptr) {
+            return placed;
+        }
+
+        const float fontSize = props.fontSize;
+        placed.found = true;
+        placed.advance = glyph->advance > 0.f ? glyph->advance * fontSize
+                                               : fontSize * 0.5f;
+
+        if (!glyph->drawable) {
+            return placed;
+        }
+
+        const glm::vec4 &bounds = glyph->planeBounds;
+        const float left = baseline.x + (bounds.x * fontSize);
+        const float right = baseline.x + (bounds.z * fontSize);
+        const float top = baseline.y - (bounds.w * fontSize);
+        const float bottom = baseline.y - (bounds.y * fontSize);
+        placed.inkLeft = bounds.x * fontSize;
+        placed.inkRight = bounds.z * fontSize;
+
+        const glm::vec2 size{
+            std::max(0.f, right - left),
+            std::max(0.f, bottom - top),
+        };
+        if (batch == nullptr || size.x <= 0.f || size.y <= 0.f) {
+            return placed;
+        }
+
+        MsdfTextInstance instance;
+        instance.position[0] = left + (size.x * 0.5f);
+        instance.position[1] = top + (size.y * 0.5f);
+        instance.position[2] = props.zIndex;
+        instance.pxRange = atlas.pxRange();
+        instance.size[0] = size.x;
+        instance.size[1] = size.y;
+        instance.color[0] = props.color.r;
+        instance.color[1] = props.color.g;
+        instance.color[2] = props.color.b;
+        instance.color[3] = props.color.a;
+        const glm::vec4 &uv = glyph->atlasRegion.getStartWH();
+        instance.uvRect[0] = uv.x;
+        instance.uvRect[1] = uv.y;
+        instance.uvRect[2] = uv.z;
+        instance.uvRect[3] = uv.w;
+        instance.id[0] = props.id.runtimeId;
+        instance.id[1] = props.id.info;
+        instance.flags[0] =
+            props.transformMode == Core::Renderer::RenderTransformMode::Camera
+                ? kMsdfTextFlagApplyCameraTransform
+                : 0u;
+        batch->push(instance, submitOrder, scissor);
+        return placed;
+    }
+
+    template <typename TAtlas>
     bool appendMsdfText(std::string_view text,
                         const Core::Renderer::FontProps &props,
                         const TAtlas &atlas,
@@ -748,6 +818,16 @@ fn fs_main_picking(in: VertexOut) -> FragmentOutPicking {
 
         return hasInk ? -((inkTop + inkBottom) * 0.5f) : fontSize * 0.35f;
     }
+
+    template MsdfPlacedGlyph
+    placeMsdfCodepoint<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(
+        uint32_t,
+        glm::vec2,
+        const Core::Renderer::FontProps &,
+        const Core::Renderer::MsdfFontAtlas<WgpuTexture> &,
+        MsdfTextBatch *,
+        uint64_t,
+        Core::Renderer::RendererScissorState);
 
     template bool appendMsdfText<Core::Renderer::MsdfFontAtlas<WgpuTexture>>(
         std::string_view,

@@ -4,9 +4,12 @@
 
 #include "bess_core/renderer/renderer_2d.h"
 #include "bess_core/renderer/renderer_types.h"
+#include "bess_core/renderer/msdf_font.h"
+#include "bess_wgpu/text/msdf_text_pipeline.h"
 #include "bess_wgpu/wgpu_shader.h"
 #include "common/types.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -16,6 +19,53 @@
 
 namespace Bess::Wgpu::Text {
     constexpr uint32_t kBitmapTextFlagApplyCameraTransform = 1u << 0u;
+
+    struct BESS_API TextPixelSpace {
+        float pixelsPerWorldX = 1.f;
+        float pixelsPerWorldY = 1.f;
+        bool camera = false;
+        bool axisAligned = true;
+        float viewportW = 1.f;
+        float viewportH = 1.f;
+        float m00 = 1.f;
+        float m01 = 0.f;
+        float m10 = 0.f;
+        float m11 = 1.f;
+        float m30 = 0.f;
+        float m31 = 0.f;
+
+        [[nodiscard]] float projectedPixelSize(float fontSize) const noexcept {
+            return fontSize * std::max(pixelsPerWorldX, pixelsPerWorldY);
+        }
+
+        [[nodiscard]] glm::vec2 worldToPixel(glm::vec2 world) const noexcept {
+            if (!camera) {
+                return world;
+            }
+            const float clipX = (m00 * world.x) + (m10 * world.y) + m30;
+            const float clipY = (m01 * world.x) + (m11 * world.y) + m31;
+            return {(clipX * 0.5f + 0.5f) * viewportW,
+                    (-clipY * 0.5f + 0.5f) * viewportH};
+        }
+
+        [[nodiscard]] glm::vec2 pixelToWorld(glm::vec2 pixel) const noexcept {
+            if (!camera) {
+                return pixel;
+            }
+            const float clipX = ((pixel.x / std::max(viewportW, 1.f)) * 2.f) - 1.f;
+            const float clipY =
+                -(((pixel.y / std::max(viewportH, 1.f)) * 2.f) - 1.f);
+            const float dx = clipX - m30;
+            const float dy = clipY - m31;
+            const float det = (m00 * m11) - (m10 * m01);
+            if (std::abs(det) < 1.0e-12f) {
+                return pixel;
+            }
+            const float invDet = 1.f / det;
+            return {invDet * ((m11 * dx) - (m10 * dy)),
+                    invDet * ((-m01 * dx) + (m00 * dy))};
+        }
+    };
 
     struct BESS_API BitmapGlyph {
         uint32_t codepoint = 0;
@@ -40,10 +90,11 @@ namespace Bess::Wgpu::Text {
         bool init(const wgpu::Device &device,
                   const wgpu::Queue &queue,
                   const std::string &fontPath,
-                  uint32_t atlasSize = 2048,
-                  uint32_t minPixelSize = 8,
-                  uint32_t maxPixelSize = 24);
+                  uint32_t atlasSize = 4096,
+                  uint32_t minPixelSize = 1,
+                  uint32_t maxPixelSize = 64);
         void destroy();
+        void beginFrame(uint64_t frame);
 
         [[nodiscard]] bool valid() const noexcept;
         [[nodiscard]] uint32_t
@@ -73,6 +124,8 @@ namespace Bess::Wgpu::Text {
                                        uint32_t width,
                                        uint32_t height,
                                        const uint8_t *pixels);
+        void clearPacking();
+        void repackKeptGlyphs();
 
         wgpu::Device m_device;
         wgpu::Queue m_queue;
@@ -87,8 +140,10 @@ namespace Bess::Wgpu::Text {
         uint32_t m_cursorX = 1;
         uint32_t m_cursorY = 1;
         uint32_t m_rowHeight = 0;
+        uint64_t m_frame = 1;
         HashMap<uint64_t, BitmapGlyph> m_glyphs;
         HashMap<uint32_t, BitmapTextLineMetrics> m_metrics;
+        HashMap<uint32_t, uint64_t> m_sizeLastUsed;
     };
 
     struct BESS_API BitmapTextInstance {
@@ -278,25 +333,31 @@ namespace Bess::Wgpu::Text {
         std::unique_ptr<WgpuShader> m_shader;
     };
 
-    bool appendBitmapText(std::string_view text,
-                          const Core::Renderer::FontProps &props,
-                          float projectedPixelSize,
-                          BitmapFontAtlas &atlas,
-                          BitmapTextBatch &batch,
-                          uint64_t submitOrder = 0,
-                          Core::Renderer::RendererScissorState scissor = {});
+    bool appendBitmapText(
+        std::string_view text,
+        const Core::Renderer::FontProps &props,
+        const TextPixelSpace &pixelSpace,
+        BitmapFontAtlas &atlas,
+        BitmapTextBatch &batch,
+        uint64_t submitOrder = 0,
+        Core::Renderer::RendererScissorState scissor = {},
+        const Core::Renderer::MsdfFontAtlas<WgpuTexture> *msdfAtlas = nullptr,
+        MsdfTextBatch *msdfBatch = nullptr);
 
     bool ensureBitmapTextGlyphs(std::string_view text,
                                 float projectedPixelSize,
                                 BitmapFontAtlas &atlas);
 
-    glm::vec2 measureBitmapText(std::string_view text,
-                                const Core::Renderer::FontProps &props,
-                                float projectedPixelSize,
-                                BitmapFontAtlas &atlas);
+    glm::vec2 measureBitmapText(
+        std::string_view text,
+        const Core::Renderer::FontProps &props,
+        const TextPixelSpace &pixelSpace,
+        BitmapFontAtlas &atlas,
+        const Core::Renderer::MsdfFontAtlas<WgpuTexture> *msdfAtlas = nullptr);
 
     float bitmapCenterOffsetY(std::string_view text,
                               const Core::Renderer::FontProps &props,
+                              const TextPixelSpace &pixelSpace,
                               BitmapFontAtlas &atlas);
 
 } // namespace Bess::Wgpu::Text
