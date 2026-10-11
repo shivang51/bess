@@ -3,7 +3,10 @@
 #include "common/bess_api.h"
 
 #include "types.h"
+#include <atomic>
 #include <filesystem>
+#include <functional>
+#include <span>
 #include <string>
 #include <thread>
 #include <unordered_map>

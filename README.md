@@ -33,9 +33,9 @@ The project began as an attempt to remove the barriers students often face when 
 Tested Build On:
 - [x] Linux (Arch Linux: Wayland)
 - [x] Windows (Running in Github Actions)
-- [ ] MacOS - Can't test and does need work
+- [x] macOS (Apple Silicon, macOS 26+)
 
-Following commands are only valid for Linux.
+Following commands are valid for Linux and macOS (see [macOS](#macos) for the extra one-time steps).
 All build scripts live in the **scripts/** folder inside the CMake source directory.
 
 1. **Clean previous builds** (if you are building after another build)
@@ -57,6 +57,32 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        cd bin/Release/x64/
        ./Bess
        ```
+
+### macOS
+Apple Silicon, macOS 26 or newer, with Xcode Command Line Tools and Homebrew.
+
+1. **Prerequisites**
+   ```bash
+   brew install cmake ninja freetype python
+   brew install yosys   # optional, only needed for Verilog import
+   ```
+2. **Dawn (WebGPU)** - `external/dawn/macos/lib/libwebgpu_dawn.dylib` is committed. To rebuild it
+   (fetches the pinned Dawn commit into `.dawn-build/`, takes a while):
+   ```bash
+   ./scripts/build_dawn_macos.sh
+   ```
+3. **Build & run** with the same scripts as Linux. Binaries go to `bin/<Debug|Release>/arm64/`.
+   Python stub generation is off by default on macOS; pass `BSTUBS=ON` if `pybind11-stubgen` is
+   installed for the Python CMake finds.
+4. **App bundle** - after a release build:
+   ```bash
+   ./scripts/package_macos_app.sh   # creates bin/Release/arm64/Bess.app
+   open bin/Release/arm64/Bess.app
+   ```
+   The bundle is ad-hoc signed and still uses the Homebrew Python framework it was built with
+   (CMake picks the newest one installed). When launched
+   from Finder, `yosys` is not on the PATH, so Verilog import only works when started from a terminal.
+
 ## TODO
 - [x] Architecture Overhaul and Usability Improvements - [Details](https://github.com/shivang51/bess/pull/25)
 - [x] Web Support - Kind of done - [Check Here](https://bess-orpin.vercel.app/Bess)

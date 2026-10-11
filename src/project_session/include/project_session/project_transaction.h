@@ -32,7 +32,12 @@ namespace Bess {
 
     class ProjectTx {
       public:
+#if defined(__cpp_lib_move_only_function)
         using Act = std::move_only_function<Status(ProjectSession &)>;
+#else
+        // libc++ (macOS) does not implement std::move_only_function yet.
+        using Act = std::function<Status(ProjectSession &)>;
+#endif
 
         ProjectTx(const ProjectTx &) = delete;
         ProjectTx &operator=(const ProjectTx &) = delete;

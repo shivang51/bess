@@ -1,8 +1,15 @@
 #include "application.h"
 #include "args_parser.h"
+#include "common/bess_assert.h"
 #include "crash_detail_helper.h"
 #include <filesystem>
 #include <iostream>
+
+#ifdef __APPLE__
+    #include <climits>
+    #include <cstdint>
+    #include <mach-o/dyld.h>
+#endif
 
 bool isValidStartDir();
 bool validateStartDir(char **argv);
@@ -31,11 +38,9 @@ int main(int argc, char **argv) {
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
 #ifdef DEBUG
-        const std::stacktrace st = std::stacktrace::current();
-        std::cerr << st << std::endl;
+        BESS_PRINT_STACKTRACE(std::cerr);
 #endif
-        throw e;
-        return -1;
+        throw;
     }
 
     return 0;
@@ -53,14 +58,38 @@ bool isValidStartDir() {
     return std::filesystem::exists("assets");
 }
 
+std::filesystem::path getExecutablePath(char **argv) {
+#ifdef __APPLE__
+    // argv[0] is not a usable path when launched from Finder or through PATH.
+    char buffer[PATH_MAX];
+    uint32_t size = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &size) == 0) {
+        std::error_code ec;
+        const auto path = std::filesystem::canonical(buffer, ec);
+        if (!ec) {
+            return path;
+        }
+    }
+#endif
+    return std::filesystem::absolute(argv[0]);
+}
+
 bool validateStartDir(char **argv) {
     if (isValidStartDir()) {
         return true;
     }
 
-    const std::filesystem::path exePath = std::filesystem::absolute(argv[0]);
-    const std::filesystem::path exeDir = exePath.parent_path();
+    const std::filesystem::path exeDir = getExecutablePath(argv).parent_path();
     std::filesystem::current_path(exeDir);
+
+#ifdef __APPLE__
+    // Inside Bess.app the executable is in Contents/MacOS and the assets are
+    // in Contents/Resources.
+    if (!isValidStartDir() &&
+        std::filesystem::exists(exeDir / ".." / "Resources" / "assets")) {
+        std::filesystem::current_path(exeDir / ".." / "Resources");
+    }
+#endif
 
     return isValidStartDir();
 }

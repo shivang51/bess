@@ -1,6 +1,7 @@
 #include "bess_core/renderer/renderer_path.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include <charconv>
 
 namespace Bess::Core::Renderer {
     Path2D::Path2D(const std::vector<PathCommand> &commands) {

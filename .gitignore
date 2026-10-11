@@ -5,6 +5,7 @@ x64
 out/
 build
 build-asan
+.dawn-build/
 bin
 
 *.o
@@ -47,6 +48,10 @@ cmake_test_discovery*.json
 notes.txt
 
 !external/**/*.so
+!external/**/*.dylib
 !external/**/*.dll
 !external/**/*.lib
 !external/**/bin/
+
+# macOS Finder metadata
+.DS_Store

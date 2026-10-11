@@ -13,8 +13,8 @@ gen(){
 	cd "./$1"
 
 	_DIR="msdf-$2-$3"
-	mkdir "./$_DIR" -p
-	rm "./$_DIR/*" -rf
+	mkdir -p "./$_DIR"
+	rm -rf "./$_DIR"/*
 
 	msdf-atlas-gen \
 		-font "$2.ttf" \

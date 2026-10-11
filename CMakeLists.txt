@@ -5,7 +5,14 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY
     "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
 )
 
-set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
+if(WIN32)
+	set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
+endif()
+
+# Floating-point std::from_chars in libc++ needs macOS 26.
+if(APPLE)
+	set(CMAKE_OSX_DEPLOYMENT_TARGET 26.0 CACHE STRING "Minimum macOS version")
+endif()
 
 project(bess C CXX)
 
@@ -28,7 +35,9 @@ message(STATUS "Building in ${CMAKE_BUILD_TYPE} mode")
 # These are for me so I don't forget how to query them :)
 message(STATUS "OS: ${CMAKE_SYSTEM_NAME}")
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+if(APPLE)
+		set(BUILD_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		set(BUILD_ARCH "x64")
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
 		set(BUILD_ARCH "x32")

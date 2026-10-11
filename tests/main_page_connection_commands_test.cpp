@@ -37,6 +37,7 @@
 #include <json/reader.h>
 #include <memory>
 #include <pybind11/embed.h>
+#include <ranges>
 #include <string>
 #include <thread>
 #include <unordered_set>

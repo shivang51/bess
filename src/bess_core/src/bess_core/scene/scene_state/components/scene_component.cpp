@@ -9,6 +9,7 @@
 #include "ext/matrix_transform.hpp"
 
 #include <limits>
+#include <ranges>
 namespace Bess::Canvas {
     namespace {
         std::size_t saturatedAdd(std::size_t lhs, std::size_t rhs) noexcept {
