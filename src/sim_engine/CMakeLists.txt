@@ -29,7 +29,7 @@ set(ALL_FILES
 )
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES} )
-if(UNIX)
+if(UNIX AND NOT APPLE)
 if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
 else()

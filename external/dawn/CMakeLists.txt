@@ -40,6 +40,18 @@ if(WIN32)
     set_target_properties(dawn_dxil PROPERTIES
         IMPORTED_LOCATION "${DAWN_DXC_RUNTIME_DIR}/dxil.dll"
     )
+elseif(APPLE)
+    set(DAWN_MACOS_DYLIB "${CMAKE_CURRENT_SOURCE_DIR}/macos/lib/libwebgpu_dawn.dylib")
+    if(NOT EXISTS "${DAWN_MACOS_DYLIB}")
+        message(FATAL_ERROR
+            "Dawn for macOS was not found at ${DAWN_MACOS_DYLIB}.\n"
+            "Build it once with ./scripts/build_dawn_macos.sh")
+    endif()
+
+    set_target_properties(dawn PROPERTIES
+        IMPORTED_LOCATION "${DAWN_MACOS_DYLIB}"
+        IMPORTED_SONAME "@rpath/libwebgpu_dawn.dylib"
+    )
 else()
     set_target_properties(dawn PROPERTIES
         IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/lib64/libwebgpu_dawn.so"

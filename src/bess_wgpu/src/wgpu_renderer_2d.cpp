@@ -1277,7 +1277,18 @@ namespace Bess::Wgpu {
                 "WebGPU surface reports no supported configuration");
         }
 
-        surfaceFormat = capabilities.formats[0];
+        // Pipelines target BGRA8Unorm, and the first reported format is not
+        // guaranteed to be it on every backend.
+        const auto *const formatsEnd =
+            capabilities.formats + capabilities.formatCount;
+        if (std::find(capabilities.formats, formatsEnd,
+                      wgpu::TextureFormat::BGRA8Unorm) != formatsEnd) {
+            surfaceFormat = wgpu::TextureFormat::BGRA8Unorm;
+        } else {
+            surfaceFormat = capabilities.formats[0];
+            BESS_WARN("[WgpuRenderer2D] Surface does not support BGRA8Unorm; "
+                      "using the first reported format");
+        }
         surfacePresentMode = chooseSurfacePresentMode(capabilities);
         surfaceAlphaMode = capabilities.alphaModes[0];
     }

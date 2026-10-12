@@ -88,7 +88,7 @@ if(LINUX)
         Threads::Threads
         ${CMAKE_DL_LIBS}
     )
-else()
+elseif(NOT APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 endif()
 
@@ -138,7 +138,13 @@ if(BESS_GENERATE_PY_STUBS)
     )
 endif()
 
+if(APPLE)
+    set(BESSPLUG_INSTALL_RPATH "@loader_path")
+else()
+    set(BESSPLUG_INSTALL_RPATH "$ORIGIN")
+endif()
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
     BUILD_RPATH "$<TARGET_FILE_DIR:BessRuntime>"
-    INSTALL_RPATH "$ORIGIN"
+    INSTALL_RPATH "${BESSPLUG_INSTALL_RPATH}"
 )

@@ -3,6 +3,8 @@
 #include "gtc/type_ptr.hpp"
 #include "json/json.h"
 #include <chrono>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_set>
@@ -34,6 +36,13 @@ namespace Bess::JsonConvert {
         j = Json::UInt(v);
     }
     inline void toJsonValue(const uint64_t &v, Json::Value &j) {
+        j = Json::UInt64(v);
+    }
+    // On macOS size_t (unsigned long) and uint64_t (unsigned long long) are
+    // distinct types, so size_t would be ambiguous between the overloads above.
+    template <std::same_as<std::size_t> T>
+        requires(!std::same_as<std::size_t, uint64_t>)
+    void toJsonValue(const T &v, Json::Value &j) {
         j = Json::UInt64(v);
     }
 
@@ -114,6 +123,12 @@ namespace Bess::JsonConvert {
     inline void fromJsonValue(const Json::Value &j, uint64_t &v) {
         if (j.isUInt64())
             v = j.asUInt64();
+    }
+    template <std::same_as<std::size_t> T>
+        requires(!std::same_as<std::size_t, uint64_t>)
+    void fromJsonValue(const Json::Value &j, T &v) {
+        if (j.isUInt64())
+            v = static_cast<T>(j.asUInt64());
     }
 
     template <typename Rep, typename Period>

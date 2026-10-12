@@ -1,6 +1,7 @@
 #include "ui/ui.h"
 #include "bess_core/g_app_context.h"
 #include "bess_wgpu/wgpu_renderer_2d.h"
+#include "common/app_paths.h"
 #include "common/logger.h"
 #include "imgui_impl_wgpu.h"
 #include "pages/main_page/main_page.h"
@@ -30,7 +31,10 @@ namespace Bess {
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-        io.IniFilename = "bess.ini";
+        // ImGui keeps the pointer, so the string must outlive the context.
+        static const std::string iniPath =
+            (AppPaths::getConfigDirectory() / "bess.ini").string();
+        io.IniFilename = iniPath.c_str();
 
         ImGui::StyleColorsDark();
 

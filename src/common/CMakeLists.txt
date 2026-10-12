@@ -4,6 +4,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
 "include/common/helpers.h"
+"include/common/app_paths.h"
 "include/common/file_watcher.h"
 "include/common/bind_helpers.h"
 "include/common/digital_state.h"
@@ -21,6 +22,7 @@ source_group("include/common" FILES ${Header_Files})
 
 set(Source_Files
 	"src/helpers.cpp"
+	"src/app_paths.cpp"
 	"src/common/file_watcher.cpp"
 	"src/bess_uuid.cpp"
 	"src/logger.cpp"

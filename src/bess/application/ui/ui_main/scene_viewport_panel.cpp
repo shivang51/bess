@@ -21,6 +21,7 @@
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include "ui/ui_panel.h"
+#include <ranges>
 
 namespace Bess::UI {
     SceneViewportPanel::SceneViewportPanel(const std::string &viewportName)

@@ -1,0 +1,76 @@
+name: CMake-macOS
+
+on:
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    # The vendored Dawn dylib and CMAKE_OSX_DEPLOYMENT_TARGET require macOS 26.
+    runs-on: macos-26
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: brew install ninja freetype
+
+    - name: Restore compiler cache
+      uses: hendrikmuhs/ccache-action@v1.2.23
+      with:
+        key: macos-${{ env.BUILD_TYPE }}
+        max-size: 3G
+
+    # Pin one interpreter for CMake, pip, pybind11, and stubgen. The runner image
+    # ships several Pythons (system, Homebrew, framework) and FindPython3 can pick
+    # a different one than `python3` on PATH.
+    - name: Set up Python
+      id: python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Python tools
+      run: |
+        "${{ steps.python.outputs.python-path }}" -m pip install --upgrade pip
+        "${{ steps.python.outputs.python-path }}" -m pip install pybind11-stubgen
+
+    - name: Configure CMake
+      run: |
+        cmake -S "${{ github.workspace }}" \
+          -B "${{ github.workspace }}/build" \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          -DTESTS=ON \
+          -DBESS_GENERATE_PY_STUBS=ON \
+          "-DPython3_EXECUTABLE=${{ steps.python.outputs.python-path }}" \
+          "-DPython3_ROOT_DIR=${{ env.pythonLocation }}"
+
+    - name: Build application and tests
+      run: cmake --build "${{ github.workspace }}/build" --target Bess BessTests --parallel "$(sysctl -n hw.ncpu)"
+
+    # Release builds look for the bessplug module in bindings/bessplug relative
+    # to the working directory, but ctest runs from the source tree, where the
+    # built module lives in src/bessplug/py.
+    - name: Test
+      env:
+        PYTHONPATH: ${{ github.workspace }}/src/bessplug/py
+      run: ctest --test-dir "${{ github.workspace }}/build" --output-on-failure --parallel "$(sysctl -n hw.ncpu)"
+
+    - name: Package Bess.app
+      run: |
+        ./scripts/package_macos_app.sh
+        # ditto keeps the bundle's symlinks and code signature intact.
+        ditto -c -k --keepParent "bin/${{ env.BUILD_TYPE }}/$(uname -m)/Bess.app" Bess-macos-arm64.zip
+
+    - name: Upload Bess.app
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-app
+        path: Bess-macos-arm64.zip
+        if-no-files-found: warn

@@ -32,6 +32,7 @@ namespace Bess {
         std::shared_ptr<SpdLogUISink> m_uiSink =
             std::make_shared<SpdLogUISink>();
         std::shared_ptr<spdlog::sinks::basic_file_sink_mt> m_fileSink = nullptr;
+        bool m_fileSinkFailed = false;
     };
 } // namespace Bess
 

@@ -145,7 +145,7 @@ endif()
 
 if(WIN32)
 	target_link_libraries(${PROJECT_NAME} PUBLIC gdi32)
-else()
+elseif(NOT APPLE)
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
 			target_link_libraries(${PROJECT_NAME} PUBLIC stdc++exp)
     else()

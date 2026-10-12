@@ -1,8 +1,11 @@
 #include "common/logger.h"
+#include "common/app_paths.h"
 #include "spdlog/spdlog.h"
 
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+
+#include <iostream>
 
 namespace Bess {
 
@@ -22,14 +25,25 @@ namespace Bess {
         logSinks.push_back(std::move(consoleSink));
 #endif
 
-        if (!m_fileSink) {
-            m_fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-                "bess.log", true);
-            m_fileSink->set_pattern(
-                "[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] [%n] %v");
+        if (!m_fileSink && !m_fileSinkFailed) {
+            const auto logPath = AppPaths::getLogDirectory() / "bess.log";
+            try {
+                m_fileSink =
+                    std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+                        logPath.string(), true);
+                m_fileSink->set_pattern(
+                    "[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] [%n] %v");
+            } catch (const spdlog::spdlog_ex &e) {
+                // A read-only working directory must not stop the app.
+                m_fileSinkFailed = true;
+                std::cerr << "[Logger] File logging disabled: " << e.what()
+                          << std::endl;
+            }
         }
 
-        logSinks.push_back(m_fileSink);
+        if (m_fileSink) {
+            logSinks.push_back(m_fileSink);
+        }
 
         if (m_uiSink) {
             m_uiSink->set_pattern("[%T] [%L] %v");

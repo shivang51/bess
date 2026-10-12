@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -273,11 +274,22 @@ namespace Bess::UI {
             GAppContext::getInstance().getSubSystem<ProjectSession>();
 
         const auto now = std::chrono::system_clock::now();
+#if defined(_LIBCPP_VERSION)
+        // libc++ (macOS) has no time zone database, so use the C library.
+        const std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
+        std::tm localTm{};
+        localtime_r(&nowTime, &localTm);
+        fileName = std::format("{}_{:04}-{:02}-{:02}_{:02}:{:02}:{:02}",
+                               session->doc().name(), localTm.tm_year + 1900,
+                               localTm.tm_mon + 1, localTm.tm_mday,
+                               localTm.tm_hour, localTm.tm_min, localTm.tm_sec);
+#else
         const std::chrono::zoned_time localTime{std::chrono::current_zone(),
                                                 now};
 
         fileName = std::format(
             "{}_{:%Y-%m-%d_%H:%M:%S}", session->doc().name(), localTime);
+#endif
 
         refreshSelectedScene();
         if (const auto scene = getSelectedScene()) {

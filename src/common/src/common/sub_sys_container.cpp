@@ -1,4 +1,5 @@
 #include "common/sub_sys_container.h"
+#include <ranges>
 
 namespace Bess {
 
